@@ -77,7 +77,8 @@ class startSim:
         self.scanParams = scanParams
         self.title = title
         self.scanNum = len(scanParams)
-        if os.path.isdir(pathIn) is not True:
+        if os.path.isdir('{}/{}'.format(pathOut, pathIn)) is not True:
+            os.chdir(pathOut)
             os.mkdir(pathIn)
 
     def modInp1(self, param, ambiguous=False, lineNum=None):
