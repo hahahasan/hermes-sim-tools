@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.style as style
-style.use('seaborn-paper')
+style.use('seaborn-whitegrid')
 
 from boutdata.collect import collect
 from boututils.datafile import DataFile
@@ -325,7 +325,7 @@ if __name__ == "__main__":
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
-             'Tnorm', 'Cs0'] # 'Ne'
+             'Tnorm', 'Cs0']  # 'Ne'
     # q_ids = ['Nnorm', 'Tnorm', 'Cs0']
 
     # x = pickleData(dateDir, dataDirName='data')
