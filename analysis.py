@@ -141,6 +141,8 @@ class analyse:
         self.analysisDir = '{}/{}'.format(outDir, analysisDir)
         self.scanParams = read_line('{}/{}'.format(outDir, logFile),
                                     'scanParams')
+        self.title = read_line('{}/{}'.format(outDir, logFile),
+                               'title')
         self.scanNum = len(self.scanParams)
         if os.path.isdir(self.analysisDir) is not True:
             os.mkdir(self.analysisDir)
@@ -256,12 +258,6 @@ class analyse:
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
 
-    def scanPlot(self, simType, quant, yind, tind=-1, norms=None,
-                 qlabels=None, ylabels=None):
-
-        if norms is None:
-            print(norms)
-
     def densityScan(self, simType, quant, yind, tind=-1, norms=None,
                     qlabels=None, ylabels=None,):
 
@@ -288,9 +284,9 @@ class analyse:
             for yNum, y in enumerate(yind):
                 for i, q in enumerate(quants[qNum]):
                     axs[qNum, yNum].plot(Ry[yNum], q[tind, :, y],
-                                         color=colors[i])
-                    axs[qNum, yNum].plot(Ry[yNum][ix1], color='k',
-                                         linestyle='--')
+                                         color=colors[i], label=self.scanParams[i])
+                    axs[qNum, yNum].axvline(Ry[yNum][ix1], color='k',
+                                            linestyle='--')
                     axs[qNum, yNum].set_xlim([np.amin(np.array(Ry[yNum])),
                                               np.amax(np.array(Ry[yNum]))])
 
@@ -305,22 +301,44 @@ class analyse:
                 qlabels.append('blah')
 
         for i in range(len(yind)):
-            axs[0, i].xaxis.set_ticklabels([])
+            # axs[0, i].xaxis.set_ticklabels([])
             axs[-1, i].set_xlabel(ylabels[i])
+
+        for j in range(0, qNum):
+            for i in range(len(yind)):
+                axs[j, i].xaxis.set_ticklabels([])
 
         for i in range(len(quants)):
             axs[i, 0].set_ylabel(qlabels[i])
 
+        plt.subplots_adjust(hspace=0.04)  # wspace=0
+
         fig
+        # import matplotlib.patches as mpatches
+        # patches = []
+        # for i in range(len(quants[0])):
+        #     patches.append(mpatches.Patch(color=colors[i],
+        #                                   label=self.scanParams[i]))
+        # plt.figlegend(handles=[i for i in patches],
+        #               loc='upper center', bbox_to_anchor=(0.5, -0.05),
+        #               shadow=True, ncol=3)
+        # plt.legend()
+
+        plt.legend(loc='upper center', ncol=2,
+                   bbox_to_anchor=[0.5, 1],
+                   bbox_transform=plt.gcf().transFigure,
+                   shadow=True,
+                   fancybox=True)
+
+        plt.suptitle(self.title)
         plt.show()
 
 
 if __name__ == "__main__":
     dateDir = '/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728'
     # dateDir = '/home/hm1234/Documents/Project/remotefs/viking/TCV/longtime/cfrac-10-06-19_175728'
-    # dateDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
-    dateDir = '/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728'
     dateDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
+    # dateDir = '/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728'
 
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
@@ -331,8 +349,13 @@ if __name__ == "__main__":
     # x = pickleData(dateDir, dataDirName='data')
     # x.saveData(q_ids)
 
-    y = analyse(dateDir)
-    y.densityScan('3-addC', ['Telim', 'Ne', 'Pe'], [37, -1, -10],
-                  qlabels=['Telim', 'Ne', 'Pe'],
-                  norms=[100, 1e20, 100*1e20*1.6e-19],
-                  ylabels=[37, -1, -10])
+    cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
+    rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
+    dScan = analyse('/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947')
+
+    qlabels = ['Telim', 'Ne', 'phi', 'Nn']
+
+    dScan.densityScan('3-addC', qlabels, [37, -1, -10],
+                      qlabels=qlabels,
+                      # norms=[100, 1e20, 100*1e20*1.6e-19],
+                      ylabels=[37, -1, -10])
