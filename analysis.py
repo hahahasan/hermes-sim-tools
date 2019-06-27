@@ -260,14 +260,28 @@ class analyse:
     def densityScan(self, simType, quant, yind, tind=-1, norms=None,
                     qlabels=None, ylabels=None,):
 
-        style.use('seaborn-whitegrid')
+        # style.use('seaborn-whitegrid')
+        qlen = len(quant)
+        ylen = len(yind)
+
         if norms is None:
-            norms = np.ones(len(quant))
+            norms = np.ones(qlen)
+
+        if ylabels is None:
+            ylabels = []
+            for i in range(ylen):
+                ylabels.append('blah')
+
+        if qlabels is None:
+            qlabels = []
+            for i in range(qlen):
+                qlabels.append('blah')
+
         Ry = []
         for i in yind:
             Ry.append(self.R[:, i])
 
-        fig, axs = plt.subplots(len(quant), len(yind))
+        fig, axs = plt.subplots(qlen, ylen)
         colors = getDistinctColors(len(self.scanParams))
 
         quants = []
@@ -280,53 +294,75 @@ class analyse:
 
         ix1 = self.ix1
 
-        if np.logical_and(len(quants) > 1, len(yind) > 1):
-            print('hi')
-        for qNum in range(len(quants)):
+        for qNum in range(qlen):
             for yNum, y in enumerate(yind):
+                if np.logical_and(qlen > 1, ylen > 1):
+                    a = eval('axs[qNum, yNum]')
+                elif np.logical_and(qlen == 1, ylen > 1):
+                    a = eval('axs[yNum]')
+                elif np.logical_and(qlen > 1, ylen == 1):
+                    a = eval('axs[qNum]')
+                elif np.logical_and(qlen == 1, ylen == 1):
+                    a = eval('axs')
                 for i, q in enumerate(quants[qNum]):
-                    print(qNum, yNum)
-                    axs[qNum, yNum].plot(Ry[yNum], q[tind, :, y],
-                                         color=colors[i],
-                                         label=self.scanParams[i])
-                    axs[qNum, yNum].axvline(Ry[yNum][ix1], color='k',
-                                            linestyle='--')
-                    axs[qNum, yNum].set_xlim([np.amin(np.array(Ry[yNum])),
-                                              np.amax(np.array(Ry[yNum]))])
-                    axs[qNum, yNum].yaxis.set_major_formatter(
+                    # print(qNum, yNum)
+                    a.plot(Ry[yNum], q[tind, :, y],
+                           color=colors[i],
+                           label=self.scanParams[i])
+                    a.axvline(Ry[yNum][ix1], color='k',
+                              linestyle='--')
+                    a.set_xlim([np.amin(np.array(Ry[yNum])),
+                                np.amax(np.array(Ry[yNum]))])
+                    a.yaxis.set_major_formatter(
                         FormatStrFormatter('%g'))
 
-        if ylabels is None:
-            ylabels = []
-            for i in range(len(yind)):
-                ylabels.append('blah')
+        for i in range(ylen):
+            if np.logical_and(qlen > 1, ylen > 1):
+                a = eval('axs[-1, i]')
+            elif np.logical_and(qlen == 1, ylen > 1):
+                a = eval('axs[i]')
+            elif np.logical_and(qlen > 1, ylen == 1):
+                a = eval('axs[-1]')
+            elif np.logical_and(qlen == 1, ylen == 1):
+                a = eval('axs')
+            a.set_xlabel(ylabels[i])
 
-        if qlabels is None:
-            qlabels = []
-            for i in range(len(yind)):
-                qlabels.append('blah')
+        for j in range(0, qlen-1):
+            for i in range(ylen):
+                if np.logical_and(qlen > 1, ylen > 1):
+                    a = eval('axs[j, i]')
+                elif np.logical_and(qlen == 1, ylen > 1):
+                    a = eval('axs[i]')
+                elif np.logical_and(qlen > 1, ylen == 1):
+                    a = eval('axs[j]')
+                elif np.logical_and(qlen == 1, ylen == 1):
+                    a = eval('axs')
+                a.xaxis.set_ticklabels([])
+                # axs[j, i].xaxis.set_ticklabels([])
 
-        for i in range(len(yind)):
-            # axs[0, i].xaxis.set_ticklabels([])
-            axs[-1, i].set_xlabel(ylabels[i])
+        for i in range(qlen):
+            if np.logical_and(qlen > 1, ylen > 1):
+                a = eval('axs[i, 0]')
+            elif np.logical_and(qlen == 1, ylen > 1):
+                a = eval('axs[0]')
+            elif np.logical_and(qlen > 1, ylen == 1):
+                a = eval('axs[i]')
+            elif np.logical_and(qlen == 1, ylen == 1):
+                a = eval('axs')
+            a.set_ylabel(qlabels[i])
+            # axs[i, 0].set_ylabel(qlabels[i])
 
-        for j in range(0, qNum):
-            for i in range(len(yind)):
-                axs[j, i].xaxis.set_ticklabels([])
-
-        for i in range(len(quants)):
-            axs[i, 0].set_ylabel(qlabels[i])
-            # axs[i, 0].yaxis.set_major_formatter(FormatStrFormatter('%.E'))
-
-        plt.subplots_adjust(hspace=0.04)  # wspace=0
         fig
         plt.legend(loc='upper center', ncol=2,
                    bbox_to_anchor=[0.5, 1],
                    bbox_transform=plt.gcf().transFigure,
-                   shadow=True,
-                   fancybox=True)
+                   # shadow=True,
+                   fancybox=True,
+                   title=self.title)
+        # plt.tight_layout()
+        plt.subplots_adjust(hspace=0.04)  # wspace=0
 
-        plt.suptitle(self.title)
+        # plt.suptitle(self.title)
         # plt.subplot_tool()
         plt.show()
 
@@ -349,7 +385,7 @@ if __name__ == "__main__":
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Tilim', 'NVn', 'Nn']
-
+    qlabels = ['Tilim']
     dScan.densityScan(simType='3-addC',
                       quant=qlabels,
                       yind=[-1],
