@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.style as style
-style.use('seaborn-whitegrid')
+from matplotlib.ticker import FormatStrFormatter
 
 from boutdata.collect import collect
 from boututils.datafile import DataFile
@@ -23,7 +23,6 @@ from boutdata.griddata import gridcontourf
 from boututils.plotdata import plotdata
 import pickle
 import colorsys
-
 
 # def HSVToRGB(h, s, v):
 #     (r, g, b) = colorsys.hsv_to_rgb(h, s, v)
@@ -261,6 +260,7 @@ class analyse:
     def densityScan(self, simType, quant, yind, tind=-1, norms=None,
                     qlabels=None, ylabels=None,):
 
+        style.use('seaborn-whitegrid')
         if norms is None:
             norms = np.ones(len(quant))
         Ry = []
@@ -280,15 +280,21 @@ class analyse:
 
         ix1 = self.ix1
 
+        if np.logical_and(len(quants) > 1, len(yind) > 1):
+            print('hi')
         for qNum in range(len(quants)):
             for yNum, y in enumerate(yind):
                 for i, q in enumerate(quants[qNum]):
+                    print(qNum, yNum)
                     axs[qNum, yNum].plot(Ry[yNum], q[tind, :, y],
-                                         color=colors[i], label=self.scanParams[i])
+                                         color=colors[i],
+                                         label=self.scanParams[i])
                     axs[qNum, yNum].axvline(Ry[yNum][ix1], color='k',
                                             linestyle='--')
                     axs[qNum, yNum].set_xlim([np.amin(np.array(Ry[yNum])),
                                               np.amax(np.array(Ry[yNum]))])
+                    axs[qNum, yNum].yaxis.set_major_formatter(
+                        FormatStrFormatter('%g'))
 
         if ylabels is None:
             ylabels = []
@@ -310,20 +316,10 @@ class analyse:
 
         for i in range(len(quants)):
             axs[i, 0].set_ylabel(qlabels[i])
+            # axs[i, 0].yaxis.set_major_formatter(FormatStrFormatter('%.E'))
 
         plt.subplots_adjust(hspace=0.04)  # wspace=0
-
         fig
-        # import matplotlib.patches as mpatches
-        # patches = []
-        # for i in range(len(quants[0])):
-        #     patches.append(mpatches.Patch(color=colors[i],
-        #                                   label=self.scanParams[i]))
-        # plt.figlegend(handles=[i for i in patches],
-        #               loc='upper center', bbox_to_anchor=(0.5, -0.05),
-        #               shadow=True, ncol=3)
-        # plt.legend()
-
         plt.legend(loc='upper center', ncol=2,
                    bbox_to_anchor=[0.5, 1],
                    bbox_transform=plt.gcf().transFigure,
@@ -331,14 +327,13 @@ class analyse:
                    fancybox=True)
 
         plt.suptitle(self.title)
+        # plt.subplot_tool()
         plt.show()
 
 
 if __name__ == "__main__":
-    dateDir = '/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728'
-    # dateDir = '/home/hm1234/Documents/Project/remotefs/viking/TCV/longtime/cfrac-10-06-19_175728'
-    dateDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
-    # dateDir = '/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728'
+    dateDir = '/home/hm1234/Documents/Project/remotefs/viking/'\
+        'TCV/longtime/cfrac-10-06-19_175728'
 
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
@@ -346,16 +341,18 @@ if __name__ == "__main__":
              'Tnorm', 'Cs0']  # 'Ne'
     # q_ids = ['Nnorm', 'Tnorm', 'Cs0']
 
-    # x = pickleData(dateDir, dataDirName='data')
-    # x.saveData(q_ids)
-
     cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
     dScan = analyse('/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947')
 
-    qlabels = ['Telim', 'Ne', 'phi', 'Nn']
+    # x = pickleData(dateDir, dataDirName='data')
+    # x.saveData(q_ids)
 
-    dScan.densityScan('3-addC', qlabels, [37, -1, -10],
-                      qlabels=qlabels,
+    qlabels = ['Telim', 'Tilim', 'NVn', 'Nn']
+
+    dScan.densityScan(simType='3-addC',
+                      quant=qlabels,
+                      yind=[-1],
+                      qlabels=qlabels,)
                       # norms=[100, 1e20, 100*1e20*1.6e-19],
-                      ylabels=[37, -1, -10])
+                      # ylabels=[37, -1, -10])
