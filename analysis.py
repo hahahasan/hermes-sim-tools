@@ -257,8 +257,8 @@ class analyse:
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
 
-    def densityScan(self, simType, quant, yind, tind=-1, norms=None,
-                    qlabels=None, ylabels=None,):
+    def quantYScan(self, simType, quant, yind, tind=-1, norms=None,
+                   qlabels=None, ylabels=None):
 
         # style.use('seaborn-whitegrid')
         qlen = len(quant)
@@ -281,7 +281,7 @@ class analyse:
         for i in yind:
             Ry.append(self.R[:, i])
 
-        fig, axs = plt.subplots(qlen, ylen)
+        fig, axs = plt.subplots(qlen, ylen, figsize=(10, 10))
         colors = getDistinctColors(len(self.scanParams))
 
         quants = []
@@ -366,6 +366,129 @@ class analyse:
         # plt.subplot_tool()
         plt.show()
 
+        # os.chdir('/users/hm1234/scratch/hermes-sim-tools/test3')
+        # plt.savefig(str(tind).zfill(4), bbox_inches='tight')
+        # plt.close()
+        # plt.cla()
+
+    def quantXScan(self, simType, quant, xind, tind=-1, norms=None,
+                   qlabels=None, xlabels=None):
+
+        style.use('seaborn-whitegrid')
+        qlen = len(quant)
+        xlen = len(xind)
+
+        if norms is None:
+            norms = np.ones(qlen)
+
+        if xlabels is None:
+            xlabels = []
+            for i in range(xlen):
+                xlabels.append('blah')
+
+        if qlabels is None:
+            qlabels = []
+            for i in range(qlen):
+                qlabels.append('blah')
+
+        Rx = []
+        for i in xind:
+            Rx.append(self.R[i, :])
+
+        fig, axs = plt.subplots(qlen, xlen, figsize=(10, 10))
+        colors = getDistinctColors(len(self.scanParams))
+
+        quants = []
+        for i, j in enumerate(quant):
+            tmp = self.scanCollect(simType, j)
+            for k in range(len(tmp)):
+                tmp[k] = norms[i]*tmp[k]
+            # tmp *= norms[i]*tmp
+            quants.append(tmp)
+
+        for qNum in range(qlen):
+            for xNum, x in enumerate(xind):
+                if np.logical_and(qlen > 1, xlen > 1):
+                    a = eval('axs[qNum, xNum]')
+                elif np.logical_and(qlen == 1, xlen > 1):
+                    a = eval('axs[xNum]')
+                elif np.logical_and(qlen > 1, xlen == 1):
+                    a = eval('axs[qNum]')
+                elif np.logical_and(qlen == 1, xlen == 1):
+                    a = eval('axs')
+                for i, q in enumerate(quants[qNum]):
+                    # print(qNum, yNum)
+                    # a.plot(Rx[xNum], q[tind, x, :],
+                    #        color=colors[i],
+                    #        label=self.scanParams[i])
+                    # a.set_xlim([np.amin(np.array(Rx[xNum])),
+                    #             np.amax(np.array(Rx[xNum]))])
+                    # a.yaxis.set_major_formatter(
+                    #     FormatStrFormatter('%g'))
+                    a.plot(q[tind, x, :],
+                           color=colors[i],
+                           label=self.scanParams[i])
+                    a.axvline(self.j12, color='k', linestyle='--')
+                    a.axvline(self.j11, color='k', linestyle='--')
+                    a.axvline(self.j22, color='k', linestyle='--')
+                    a.yaxis.set_major_formatter(
+                        FormatStrFormatter('%g'))
+
+        for i in range(xlen):
+            if np.logical_and(qlen > 1, xlen > 1):
+                a = eval('axs[-1, i]')
+            elif np.logical_and(qlen == 1, xlen > 1):
+                a = eval('axs[i]')
+            elif np.logical_and(qlen > 1, xlen == 1):
+                a = eval('axs[-1]')
+            elif np.logical_and(qlen == 1, xlen == 1):
+                a = eval('axs')
+            a.set_xlabel(xlabels[i])
+
+        for j in range(0, qlen-1):
+            for i in range(xlen):
+                if np.logical_and(qlen > 1, xlen > 1):
+                    a = eval('axs[j, i]')
+                elif np.logical_and(qlen == 1, xlen > 1):
+                    a = eval('axs[i]')
+                elif np.logical_and(qlen > 1, xlen == 1):
+                    a = eval('axs[j]')
+                elif np.logical_and(qlen == 1, xlen == 1):
+                    a = eval('axs')
+                a.xaxis.set_ticklabels([])
+                # axs[j, i].xaxis.set_ticklabels([])
+
+        for i in range(qlen):
+            if np.logical_and(qlen > 1, xlen > 1):
+                a = eval('axs[i, 0]')
+            elif np.logical_and(qlen == 1, xlen > 1):
+                a = eval('axs[0]')
+            elif np.logical_and(qlen > 1, xlen == 1):
+                a = eval('axs[i]')
+            elif np.logical_and(qlen == 1, xlen == 1):
+                a = eval('axs')
+            a.set_ylabel(qlabels[i])
+            # axs[i, 0].set_ylabel(qlabels[i])
+
+        fig
+        plt.legend(loc='upper center', ncol=2,
+                   bbox_to_anchor=[0.5, 1],
+                   bbox_transform=plt.gcf().transFigure,
+                   # shadow=True,
+                   fancybox=True,
+                   title=self.title)
+        # plt.tight_layout()
+        plt.subplots_adjust(hspace=0.04)  # wspace=0
+
+        # plt.suptitle(self.title)
+        # plt.subplot_tool()
+        plt.show()
+
+        # os.chdir('/users/hm1234/scratch/hermes-sim-tools/test3')
+        # plt.savefig(str(tind).zfill(4), bbox_inches='tight')
+        # plt.close()
+        # plt.cla()
+
 
 if __name__ == "__main__":
     dateDir = '/home/hm1234/Documents/Project/remotefs/viking/'\
@@ -385,10 +508,14 @@ if __name__ == "__main__":
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Tilim', 'NVn', 'Nn']
-    qlabels = ['Tilim']
-    dScan.densityScan(simType='3-addC',
-                      quant=qlabels,
-                      yind=[-1],
-                      qlabels=qlabels,)
-                      # norms=[100, 1e20, 100*1e20*1.6e-19],
-                      # ylabels=[37, -1, -10])
+    # qlabels = ['Tilim', 'Telim']
+    # for k in np.arange(556):
+    dScan.quantXScan(simType='3-addC',
+                     quant=qlabels,
+                     xind=[22, 43, 54],
+                     # yind=[-1],
+                     qlabels=qlabels,
+                     xlabels=['mid_PF', 'seperatrix', 'mid_SOL'],
+                     tind=-1)
+    # norms=[100, 1e20, 100*1e20*1.6e-19],
+    # ylabels=[37, -1, -10])

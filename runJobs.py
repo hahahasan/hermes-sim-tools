@@ -69,6 +69,7 @@ class startSim:
     '''
     def __init__(self, pathOut, pathIn, dateDir, inpFile, gridFile,
                  scanParams, title='sim'):
+        os.chdir(pathOut)
         self.pathOut = pathOut
         self.pathIn = pathIn
         self.inpFile = inpFile
@@ -143,15 +144,17 @@ class startSim:
         self.log('scanParams: {}'.format(str(self.scanParams)))
         for i in range(self.scanNum):
             os.mkdir(str(i))
-            os.system('cp {}/{} {}'.format(self.pathOut, self.inpFile, i))
+            os.system('cp {}/{} {}/BOUT.inp'.format(self.pathOut,
+                                                    self.inpFile, i))
             if type(self.gridFile) == str:
                 os.system('cp {}/{} {}'.format(self.pathOut, self.gridFile, i))
+        self.inpFile = 'BOUT.inp'
         self.modInp2('grid', self.gridFile)
 
     def subJob(self, ):
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
-            os.system('sbatch {}.job'.format(self.title))
+            os.system('sbatch -q short {}.job'.format(self.title))
 
 
 class multiGridSim(startSim):
@@ -175,7 +178,8 @@ class addSim:
         os.chdir(runDir)
         self.scanNum = len(read_line(logFile, 'scanParams'))
         self.title = read_line(logFile, 'title')
-        self.inpFile = read_line(logFile, 'inpFile')
+        # self.inpFile = read_line(logFile, 'inpFile')
+        self.inpFile = 'BOUT.inp'
         self.gridFile = read_line(logFile, 'gridFile')
         self.hermesVer = read_line(logFile, 'hermesVer')
         self.nProcs = read_line(logFile, 'nProcs')
@@ -285,7 +289,7 @@ if __name__ == "__main__":
 
     nProcs = 160
     tme = '23:55:55'  # hr:min:sec
-    # tme = '00:10:00'
+    tme = '00:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
     # hermesVer = '/mnt/lustre/groups/phys-bout-2019/hermes-2-next/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
