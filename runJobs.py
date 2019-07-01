@@ -151,10 +151,13 @@ class startSim:
         self.inpFile = 'BOUT.inp'
         self.modInp2('grid', self.gridFile)
 
-    def subJob(self, ):
+    def subJob(self, shortQ=False):
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
-            os.system('sbatch -q short {}.job'.format(self.title))
+            if shortQ is False:
+                os.system('sbatch {}.job'.format(self.title))
+            elif shortQ is True:
+                os.system('sbatch -q short {}.job'.format(self.title))
 
 
 class multiGridSim(startSim):
@@ -274,7 +277,7 @@ class addTurbulence(addSim):
 
 
 if __name__ == "__main__":
-    inpFile = 'BOUT-test.inp'
+    inpFile = 'BOUT.inp'
     gridFile = 'tcv_52068_64x64_profiles_1e19.nc'
 
     pathOut = '/users/hm1234/scratch/newTCV'
@@ -289,7 +292,7 @@ if __name__ == "__main__":
 
     nProcs = 160
     tme = '23:55:55'  # hr:min:sec
-    tme = '00:10:00'
+    # tme = '10:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
     # hermesVer = '/mnt/lustre/groups/phys-bout-2019/hermes-2-next/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
@@ -299,14 +302,14 @@ if __name__ == "__main__":
              'tcv_63127_64x64_profiles_1.6e19.nc',
              'tcv_63127_64x64_profiles_2.0e19.nc']
 
-    gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
-    gridSim.setup()
-    gridSim.modInp2('carbon_fraction', 0.04)
-    gridSim.modInp2('frecycle', 0.95)
-    gridSim.modInp2('NOUT', 444)
-    gridSim.modInp2('TIMESTEP', 222)
-    gridSim.modJob(nProcs, hermesVer, tme)
-    gridSim.subJob()
+    # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
+    # gridSim.setup()
+    # gridSim.modInp2('carbon_fraction', 0.04)
+    # gridSim.modInp2('frecycle', 0.95)
+    # gridSim.modInp2('NOUT', 444)
+    # gridSim.modInp2('TIMESTEP', 222)
+    # gridSim.modJob(nProcs, hermesVer, tme)
+    # gridSim.subJob()
 
     # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
     #                 scanParams, title)
@@ -322,16 +325,17 @@ if __name__ == "__main__":
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/frecycle-05-06-19_145457'
     # runDir = '/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728'
     # runDir = '/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728'
-    runDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
+    # runDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351'
 
-    # addN = addNeutrals(runDir)
-    # addN.copyFiles('2-addN')
-    # addN.modFile('NOUT', 555)
-    # addN.modFile('TIMESTEP', 111)
-    # addN.modFile('type', 'mixed', ambiguous=True, lineNum=212)
-    # addN.modJob(tme)
-    # addN.addVar(Nn=0.1, Pn=0.05)
-    # addN.subJob()
+    addN = addNeutrals(runDir)
+    addN.copyFiles('2-addN')
+    addN.modFile('NOUT', 555)
+    addN.modFile('TIMESTEP', 150)
+    addN.modFile('type', 'mixed', ambiguous=True, lineNum=214)
+    addN.modJob(tme)
+    addN.addVar(Nn=0.1, Pn=0.05)
+    addN.subJob()
 
     # tme = '23:55:55'
     # addC = addCurrents(runDir)
