@@ -148,21 +148,21 @@ def checkProfiles(gridFiles=[], densities=[]):
 # mid = int((j12+j22)/2)
 # # mid = -4
 
-# plt.axvline(x=ix1, color='black', linestyle='--') 
+# plt.axvline(x=ix1, color='black', linestyle='--')
 # plt.axhline(y=0.1e20, color='r', linestyle='--')
 # plt.axhline(y=0.2e20, color='g', linestyle='--')
 # plt.axhline(y=0.3e20, color='b', linestyle='--')
 # plt.axhline(y=0.4e20, color='cyan', linestyle='--')
-# plt.plot(ne1[:,mid], color='r', label='1e19') 
-# plt.plot(ne2[:,mid], color='g', label='2e19')  
+# plt.plot(ne1[:,mid], color='r', label='1e19')
+# plt.plot(ne2[:,mid], color='g', label='2e19')
 # plt.plot(ne3[:,mid], color='b', label='3e19')
 # plt.plot(ne4[:,mid], color='cyan', label='4e19')
 # plt.legend()
 # plt.show()
 
 if __name__ == "__main__":
-    baseGrid = 'tcv_63127_64x64.nc'
-    baseGrid = 'test.nc'
+    baseGrid = 'tcv_63127_mod.nc'
+    # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
 
@@ -176,10 +176,10 @@ if __name__ == "__main__":
         pedestals.append((0.2*d)-offset)
         gridFiles.append('tcv_63127_64x64_profiles_{}e19.nc'.format(d))
 
-    offsets = [0.02*1.2]
-    pedestals = [(0.2*1.2)-offsets[0]]
-    gridFiles = ['test_profiles.nc']
-    densities = [1.2]
+    # offsets = [0.02*1.2]
+    # pedestals = [(0.2*1.2)-offsets[0]]
+    # gridFiles = ['test_profiles.nc']
+    # densities = [1.2]
 
     for i in range(len(densities)):
         createNewProfile(baseGrid, gridFiles[i], offsets[i], pedestals[i])
