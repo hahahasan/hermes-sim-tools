@@ -24,16 +24,6 @@ from boututils.plotdata import plotdata
 import pickle
 import colorsys
 
-# def HSVToRGB(h, s, v):
-#     (r, g, b) = colorsys.hsv_to_rgb(h, s, v)
-#     # return (int(255*r), int(255*g), int(255*b))
-#     return (r, g, b)
-
-
-# def getDistinctColors(n):
-#     huePartition = 1.0 / (n + 1)
-#     return [HSVToRGB(huePartition * value, 1.0, 1.0) for value in
-#             range(0, n)]
 
 def getDistinctColors(n):
     huePartition = 1.0/(n+1)
@@ -270,12 +260,12 @@ class analyse:
         if ylabels is None:
             ylabels = []
             for i in range(ylen):
-                ylabels.append('blah')
+                ylabels.append(yind[i])
 
         if qlabels is None:
             qlabels = []
             for i in range(qlen):
-                qlabels.append('blah')
+                qlabels.append(quant[i])
 
         Ry = []
         for i in yind:
@@ -384,12 +374,12 @@ class analyse:
         if xlabels is None:
             xlabels = []
             for i in range(xlen):
-                xlabels.append('blah')
+                xlabels.append(xind[i])
 
         if qlabels is None:
             qlabels = []
             for i in range(qlen):
-                qlabels.append('blah')
+                qlabels.append(quant[i])
 
         Rx = []
         for i in xind:
@@ -497,25 +487,23 @@ if __name__ == "__main__":
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
-             'Tnorm', 'Cs0']  # 'Ne'
-    # q_ids = ['Nnorm', 'Tnorm', 'Cs0']
+             'Tnorm', 'Cs0', 'Ne']  # 'Ne'
+    q_ids = ['Ne']
 
     cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
     dScan = analyse('/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947')
+    newDScan = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
 
-    # x = pickleData(dateDir, dataDirName='data')
+    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
     # x.saveData(q_ids)
 
-    qlabels = ['Telim', 'Tilim', 'NVn', 'Nn']
+    qlabels = ['Telim', 'Ne']
     # qlabels = ['Tilim', 'Telim']
     # for k in np.arange(556):
-    dScan.quantXScan(simType='3-addC',
-                     quant=qlabels,
-                     xind=[22, 43, 54],
-                     # yind=[-1],
-                     qlabels=qlabels,
-                     xlabels=['mid_PF', 'seperatrix', 'mid_SOL'],
-                     tind=-1)
+    newDScan.quantYScan(simType='2-addN',
+                        quant=qlabels,
+                        yind=[-1, 37, -10],
+                        tind=-1)
     # norms=[100, 1e20, 100*1e20*1.6e-19],
     # ylabels=[37, -1, -10])
