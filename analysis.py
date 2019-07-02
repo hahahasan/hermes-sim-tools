@@ -553,15 +553,15 @@ class analyse:
         grid = plt.GridSpec(2, len(subDirs))
         ix1 = self.ix1
         mid = int(0.5*(self.j12+self.j22))
+        # mid = -1
+        # ix1 = 54
 
-        global ne
         ne = []
         tme = []
         for i in subDirs:
             ne.append(self.scanCollect('Ne', i))
             tme.append(self.scanCollect('t_array', i))
 
-        global ne_all
         ne_all = []
         tme_all = []
         for i in range(len(ne[0])):
@@ -579,9 +579,21 @@ class analyse:
                 tmp.plot(tme[i][j], ne[i][j][:, ix1, mid])
             tmp.set_title(subDirs[i])
 
+        avg_tme_cutoffs = []
+        for i in range(len(tme)-1):
+            a = 0
+            for j in tme[i]:
+                a += len(j)
+            avg_tme_cutoffs.append(int(a/len(tme[0])))
+        avg_tme_cutoffs = np.cumsum(avg_tme_cutoffs)
+
         tmp = fig.add_subplot(grid[1, :])
         for j in range(len(ne[0])):
             tmp.plot(tme_all[j], ne_all[j][:, ix1, mid])
+
+        for i in range(len(tme)-1):
+            tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
+                        linestyle='--')
         tmp.set_xlabel(r'Time ($\mu s$)')
         tmp.set_ylabel(r'N$_{e}$ ($x10^{20} m^{-3}$)')
         plt.show()
@@ -613,6 +625,6 @@ if __name__ == "__main__":
     #                     yind=[-1, 37, -10],
     #                     tind=-1)
 
-    cScan.neScanConv()
+    dScan.neScanConv()
 
     # newDScan.neConv(0)
