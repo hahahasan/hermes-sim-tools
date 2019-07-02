@@ -194,7 +194,7 @@ class analyse:
 
     def collectData(self, quant, simIndex=0, simType='1-base'):
         try:
-            quant2 = self.unPickle(quant, simIndex, simType)
+            quant2 = np.squeeze(self.unPickle(quant, simIndex, simType))
         except(FileNotFoundError):
             print('{} has not been pickled'.format(quant))
             os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
@@ -205,13 +205,13 @@ class analyse:
         x = []
         if quant == 't_array':
             for i in range(self.scanNum):
-                tempTime = (self.unPickle('t_array', i, simType)/int(
-                    self.unPickle('Omega_ci', i, simType)))*1e6
+                tempTime = (self.collectData('t_array', i, simType)/int(
+                    self.collectData('Omega_ci', i, simType)))*1e6
                 # print(tempTime[int(len(tempTime)/2)])
                 x.append(tempTime)
         else:
             for i in range(self.scanNum):
-                x.append(np.squeeze(self.unPickle(quant, i, simType)))
+                x.append(self.collectData(quant, i, simType))
         return x
 
     def showScanData(self, quant, simType, interval=5, filename='blah',
@@ -547,7 +547,7 @@ if __name__ == "__main__":
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
              'Tnorm', 'Cs0', 'Ne']
-    q_ids = ['Ne', 'carbon_fraction']
+    q_ids = ['Ne']
 
     cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
