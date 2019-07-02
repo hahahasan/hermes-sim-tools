@@ -99,21 +99,34 @@ class pickleData:
             a.sort()
             self.subDirs.append(a)
         for i in range(self.scanNum):
-            os.system('mkdir -p {}/{}/{}'.format(dataDirName, i, '1-base'))
+            os.system('mkdir -p {}/{}/{}'.format(self.pickleDir, i, '1-base'))
             for j in self.subDirs[i]:
-                os.system('mkdir -p {}/{}/{}'.format(dataDirName, i, j))
+                os.system('mkdir -p {}/{}/{}'.format(self.pickleDir, i, j))
 
-    def saveData(self, quant):
+    def saveData(self, quant, subDir=[]):
+        '''
+        quant, subDirs: will always assume populated base directory
+        '''
+        if len(subDir) == 0:
+            subDirs = self.subDirs
+        else:
+            subDirs = []
+            for i in range(self.scanNum):
+                subDirs.append(subDir)
         for i in range(self.scanNum):
             print('################# collecting for scanParam {}'.format(
                 self.scanParams[i]))
-            for j in range(-1, len(self.subDirs[i])):
+            for j in range(-1, len(subDirs[i])):
                 if j == -1:
                     title = '1-base'
                 else:
-                    title = self.subDirs[i][j]
+                    title = subDirs[i][j]
                 print('############## collecting for {}'.format(title))
                 for q_id in quant:
+                    os.chdir('{}/{}/{}'.format(self.pickleDir, i, title))
+                    if os.path.isfile(q_id) is True:
+                        print('already pickled {}'.format(q_id))
+                        continue
                     if j == -1:
                         os.chdir('{}/{}'.format(self.dataDir, i))
                     else:
@@ -522,6 +535,9 @@ class analyse:
         tmp.plot(tmeAll, neAll[:, ix1, mid])
         plt.show()
 
+    def neScanConv(self):
+        print('hi')
+
 
 if __name__ == "__main__":
     dateDir = '/home/hm1234/Documents/Project/remotefs/viking/'\
@@ -531,7 +547,7 @@ if __name__ == "__main__":
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
              'Tnorm', 'Cs0', 'Ne']
-    q_ids = ['Ne']
+    q_ids = ['Ne', 'carbon_fraction']
 
     cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
@@ -539,7 +555,7 @@ if __name__ == "__main__":
     newDScan = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
 
     # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
-    # x.saveData(q_ids)
+    # x.saveData(q_ids, subDir=['2-addN'])
 
     qlabels = ['Telim', 'Ne']
 
@@ -548,5 +564,3 @@ if __name__ == "__main__":
     #                     quant=qlabels,
     #                     yind=[-1, 37, -10],
     #                     tind=-1)
-
-    
