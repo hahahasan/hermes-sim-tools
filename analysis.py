@@ -197,7 +197,10 @@ class analyse:
             quant2 = np.squeeze(self.unPickle(quant, simIndex, simType))
         except(FileNotFoundError):
             print('{} has not been pickled'.format(quant))
-            os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
+            if simType == '1-base':
+                os.chdir('{}/{}'.format(self.outDir, simIndex))
+            else:
+                os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
             quant2 = np.squeeze(collect(quant))
         return quant2
 
@@ -535,8 +538,53 @@ class analyse:
         tmp.plot(tmeAll, neAll[:, ix1, mid])
         plt.show()
 
-    def neScanConv(self):
-        print('hi')
+    def neScanConv(self, subDir=[]):
+        if len(subDir) == 0:
+            subDirs = ['1-base']
+            os.chdir('{}/{}'.format(self.outDir, 0))
+            tmp = next(os.walk('./'))[1]
+            tmp.sort()
+            for i in tmp:
+                subDirs.append(i)
+        else:
+            subDirs = subDir
+
+        fig = plt.figure()
+        grid = plt.GridSpec(2, len(subDirs))
+        ix1 = self.ix1
+        mid = int(0.5*(self.j12+self.j22))
+
+        global ne
+        ne = []
+        tme = []
+        for i in subDirs:
+            ne.append(self.scanCollect('Ne', i))
+            tme.append(self.scanCollect('t_array', i))
+
+        global ne_all
+        ne_all = []
+        tme_all = []
+        for i in range(len(ne[0])):
+            nec = []
+            tmec = []
+            for j in range(len(ne)):
+                nec.append(ne[j][i])
+                tmec.append(tme[j][i])
+            ne_all.append(concatenate(nec))
+            tme_all.append(concatenate(tmec))
+
+        for i in range(len(ne)):
+            tmp = fig.add_subplot(grid[0, i])
+            for j in range(len(ne[0])):
+                tmp.plot(tme[i][j], ne[i][j][:, ix1, mid])
+            tmp.set_title(subDirs[i])
+
+        tmp = fig.add_subplot(grid[1, :])
+        for j in range(len(ne[0])):
+            tmp.plot(tme_all[j], ne_all[j][:, ix1, mid])
+        tmp.set_xlabel(r'Time ($\mu s$)')
+        tmp.set_ylabel(r'N$_{e}$ ($x10^{20} m^{-3}$)')
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -564,3 +612,7 @@ if __name__ == "__main__":
     #                     quant=qlabels,
     #                     yind=[-1, 37, -10],
     #                     tind=-1)
+
+    cScan.neScanConv()
+
+    # newDScan.neConv(0)
