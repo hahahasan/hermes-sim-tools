@@ -46,6 +46,14 @@ def listDuplicates(seq, item):
     return locs
 
 
+def concatenate(data, axis=0):
+    lst = []
+    for i in data:
+        lst.append(i)
+    lst = tuple(lst)
+    return np.concatenate(lst, axis=axis)
+
+
 def find_closest(data, v):
     return (np.abs(data-v)).argmin()
 
@@ -177,10 +185,10 @@ class analyse:
         except(FileNotFoundError):
             print('{} has not been pickled'.format(quant))
             os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-            quant2 = collect(quant)
+            quant2 = np.squeeze(collect(quant))
         return quant2
 
-    def scanCollect(self, simType, quant):
+    def scanCollect(self, quant, simType):
         x = []
         if quant == 't_array':
             for i in range(self.scanNum):
@@ -363,7 +371,11 @@ class analyse:
 
     def quantXScan(self, simType, quant, xind, tind=-1, norms=None,
                    qlabels=None, xlabels=None):
-
+        '''
+        simType: typically either 1-base, 2-AddN, 3-AddC, 4-addT
+        quant: list of quantities to plot
+        xind: list of x-indices
+        '''
         style.use('seaborn-whitegrid')
         qlen = len(quant)
         xlen = len(xind)
@@ -479,6 +491,37 @@ class analyse:
         # plt.close()
         # plt.cla()
 
+    def neConv(self, simIndex):
+        os.chdir('{}/{}'.format(self.outDir, simIndex))
+        tmp = next(os.walk('./'))[1]
+        tmp.sort()
+        ne_list = ['./']
+        for i in tmp:
+            ne_list.append(i)
+
+        fig = plt.figure()
+        grid = plt.GridSpec(2, len(ne_list), wspace=0.4, hspace=0.3)
+
+        ne = []
+        tme = []
+        for i in ne_list:
+            ne.append(np.squeeze(collect('Ne', path=i)))
+            tme.append(collect('t_array', path=i))
+
+        neAll = concatenate(ne)
+        tmeAll = concatenate(tme)
+
+        ix1 = self.ix1
+        mid = int(0.5*(self.j12+self.j22))
+
+        for i in range(len(ne_list)):
+            tmp = fig.add_subplot(grid[0, i])
+            tmp.plot(tme[i], ne[i][:, ix1, mid])
+
+        tmp = fig.add_subplot(grid[1, :])
+        tmp.plot(tmeAll, neAll[:, ix1, mid])
+        plt.show()
+
 
 if __name__ == "__main__":
     dateDir = '/home/hm1234/Documents/Project/remotefs/viking/'\
@@ -487,7 +530,7 @@ if __name__ == "__main__":
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
-             'Tnorm', 'Cs0', 'Ne']  # 'Ne'
+             'Tnorm', 'Cs0', 'Ne']
     q_ids = ['Ne']
 
     cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
@@ -499,11 +542,11 @@ if __name__ == "__main__":
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
-    # qlabels = ['Tilim', 'Telim']
+
     # for k in np.arange(556):
-    newDScan.quantYScan(simType='2-addN',
-                        quant=qlabels,
-                        yind=[-1, 37, -10],
-                        tind=-1)
-    # norms=[100, 1e20, 100*1e20*1.6e-19],
-    # ylabels=[37, -1, -10])
+    # newDScan.quantYScan(simType='2-addN',
+    #                     quant=qlabels,
+    #                     yind=[-1, 37, -10],
+    #                     tind=-1)
+
+    
