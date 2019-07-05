@@ -23,6 +23,12 @@ from boutdata.griddata import gridcontourf
 from boututils.plotdata import plotdata
 import pickle
 import colorsys
+from inspect import getsource as GS
+
+
+def getSource(obj):
+    lines = GS(obj)
+    print(lines)
 
 
 def getDistinctColors(n):
@@ -554,7 +560,7 @@ class analyse:
         ix1 = self.ix1
         mid = int(0.5*(self.j12+self.j22))
         # mid = -1
-        # ix1 = 54
+        # ix1 = 5
 
         ne = []
         tme = []
@@ -595,7 +601,7 @@ class analyse:
             tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
                         linestyle='--')
         tmp.set_xlabel(r'Time ($\mu s$)')
-        tmp.set_ylabel(r'N$_{e}$ ($x10^{20} m^{-3}$)')
+        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
         plt.show()
 
 
@@ -606,8 +612,8 @@ if __name__ == "__main__":
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
-             'Tnorm', 'Cs0', 'Ne']
-    q_ids = ['Ne']
+             'Tnorm', 'Cs0', 'Ne', 'Qi', 'S', 'F', 'Rp', 'Pn']
+    # q_ids = ['Ne']
 
     cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
@@ -615,7 +621,7 @@ if __name__ == "__main__":
     newDScan = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
 
     # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
-    # x.saveData(q_ids, subDir=['2-addN'])
+    # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
@@ -625,6 +631,6 @@ if __name__ == "__main__":
     #                     yind=[-1, 37, -10],
     #                     tind=-1)
 
-    dScan.neScanConv()
+    newDScan.neScanConv()
 
     # newDScan.neConv(0)
