@@ -6,6 +6,12 @@ import time
 from boutdata.restart import addvar
 from boutdata.restart import addnoise
 from boutdata.restart import resizeZ
+from inspect import getsource as GS
+
+
+def funcReqs(obj):
+    lines = GS(obj).partition(':')[0]
+    print(lines)
 
 
 def list_files(path):
@@ -269,11 +275,24 @@ class addCurrents(addSim):
 
 
 class addTurbulence(addSim):
-    def addTurb(self, MZ=64, param='Vort', pScale=1e-5):
+    '''
+    make sure to use
+    export
+    PYTHONPATH=/mnt/lustre/groups/phys-bout-2019/BOUT-dev/tools/pylib/:$PYTHONPATH
+    '''
+    def addTurb(self, MZ=64, param='Vort', pScale=1e-5, multiply=True):
         for i in range(self.scanNum):
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             resizeZ(newNz=MZ, path='../', output='./')
             addnoise(path='.', var=param, scale=pScale)
+
+
+class testTurbulence(addSim):
+    def addTurb(self, simIndex, MZ=64, param='Vort', pScale=1e-5,
+                multiply=True):
+        os.chdir('{}/{}/{}'.format(self.runDir, simIndex, self.addType))
+        resizeZ(newNz=MZ, path='../', output='./')
+        addnoise(path='.', var=param, scale=pScale, multiply=True)
 
 
 if __name__ == "__main__":
@@ -338,10 +357,15 @@ if __name__ == "__main__":
     # addN.subJob()
 
     # tme = '23:55:55'
-    addC = addCurrents(runDir)
-    addC.copyFiles2('2-addN', '3-addC')
-    addC.modFile('j_par', 'true')
-    addC.modFile('j_diamag', 'true')
-    addC.modFile('TIMESTEP', 333)
-    addC.modJob(tme)
-    addC.subJob()
+    # addC = addCurrents(runDir)
+    # addC.copyFiles2('2-addN', '3-addC')
+    # addC.modFile('j_par', 'true')
+    # addC.modFile('j_diamag', 'true')
+    # addC.modFile('TIMESTEP', 333)
+    # addC.modJob(tme)
+    # addC.subJob()
+
+    tme = '1-23:55:55'
+    addT = testTurbulence(runDir)
+    addT.copyFiles2('3-addC', '4-addT')
+    addT.modJob(tme)

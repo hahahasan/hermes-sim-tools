@@ -31,6 +31,11 @@ def getSource(obj):
     print(lines)
 
 
+def funcReqs(obj):
+    lines = GS(obj).partition(':')[0]
+    print(lines)
+
+
 def getDistinctColors(n):
     huePartition = 1.0/(n+1)
     colors = [colorsys.hsv_to_rgb(huePartition*value, 1.0, 1.0) for value in
