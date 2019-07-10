@@ -183,11 +183,15 @@ class multiGridSim(startSim):
 
 
 class addSim:
-    def __init__(self, runDir, logFile='log.txt'):
+    def __init__(self, runDir, scanIDs=[], logFile='log.txt'):
         self.runDir = runDir
         os.chdir(runDir)
         self.scanParams = read_line(logFile, 'scanParams')
-        self.scanNum = len(read_line(logFile, 'scanParams'))
+        if len(scanIDs) == 0:
+            self.scanIDs = list(np.arange(len(self.scanParams)))
+        else:
+            self.scanIDs = scanIDs
+        self.scanNum = len(self.scanParams)
         self.title = read_line(logFile, 'title')
         # self.inpFile = read_line(logFile, 'inpFile')
         self.inpFile = 'BOUT.inp'
@@ -195,49 +199,75 @@ class addSim:
         self.hermesVer = read_line(logFile, 'hermesVer')
         self.nProcs = read_line(logFile, 'nProcs')
 
-    def copyFiles(self, addType='restart'):
+    def copyNewInp(self, oldDir, inpName):
+        for i in self.scanIDs:
+            os.system('cp {}/{} {}/{}/{}/BOUT.inp'.format(
+                oldDir, inpName, self.runDir, i, self.addType))
+
+    def modInp(self, param, lineNum=None):
+        scanParams = []
+        for i in self.scanIDs:
+            scanParams.append(self.scanParams[i])
+        for i in self.scanIDs:
+            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
+            if lineNum is None:
+                lineNum = find_line('{}/{}/{}/{}'.format(
+                    self.runDir, i, self.addType, self.inpFile),
+                                    param)
+            else:
+                lineNum = lineNum
+            for j in scanParams:
+                replace_line('{}'.format(self.inpFile),
+                             lineNum,
+                             '{} = {}'.format(param, j))
+
+    def copyInpFiles(self, oldDir=None, addType='restart'):
         self.addType = addType
-        for i in range(self.scanNum):
+        for i in self.scanIDs:
             os.chdir('{}/{}'.format(self.runDir, i))
-            os.mkdir(addType)
-            os.system('cp {} {}'.format(self.inpFile, addType))
-            os.system('cp BOUT.restart.* {}'.format(addType))
-            # if len(self.gridFile) > 1:
+            os.system('mkdir -p {}'.format(addType))
             if type(self.gridFile) != str:
                 os.system('cp {} {}'.format(self.gridFile[i], addType))
             else:
                 os.system('cp {} {}'.format(self.gridFile, addType))
-
             os.system('cp *.job {}/{}.job'.format(addType, addType))
-
-    def copyFiles2(self, oldDir, addType='restart'):
-        self.addType = addType
-        for i in range(self.scanNum):
-            os.chdir('{}/{}'.format(self.runDir, i))
-            os.mkdir(addType)
-            os.system('cp {}/{} {}'.format(oldDir, self.inpFile, addType))
-            os.system('cp {}/BOUT.restart.* {}'.format(oldDir, addType))
-            if type(self.gridFile) != str:
-                os.system('cp {} {}'.format(self.gridFile[i], addType))
+            if oldDir is None:
+                cmd = 'cp {} {}'.format(self.inpFile, addType)
             else:
-                os.system('cp {} {}'.format(self.gridFile, addType))
+                cmd = 'cp {}/{} {}'.format(oldDir, self.inpFile, addType)
+            os.system(cmd)
 
-            os.system('cp *.job {}/{}.job'.format(addType, addType))
-
-    def modFile(self, param, value, ambiguous=False, lineNum=None):
-        if ambiguous is False:
-            lineNum = find_line('{}/0/{}'.format(self.runDir, self.inpFile),
-                                param)
+    def copyRestartFiles(self, oldDir=None, addType='restart'):
+        if oldDir is None:
+            cmd = 'cp BOUT.restart.* {}'.format(addType)
         else:
-            lineNum = lineNum
-        for i in range(self.scanNum):
+            cmd = 'cp {}/BOUT.restart.* {}'.format(oldDir, addType)
+        for i in self.scanIDs:
+            os.chdir('{}/{}'.format(self.runDir, i))
+            os.system(cmd)
+
+    def redistributeProcs(self, oldDir, addType, npes):
+        self.copyInpFiles(oldDir, addType)
+        for i in self.scanIDs:
+            os.chdir('{}/{}'.format(self.runDir, i))
+            redistribute(npes=npes, path=oldDir, output=addType)
+        self.nProcs = npes
+
+    def modFile(self, param, value, lineNum=None):
+        for i in self.scanIDs:
+            if lineNum is None:
+                lineNum = find_line('{}/{}/{}/{}'.format(
+                    self.runDir, i, self.addType, self.inpFile),
+                                    param)
+            else:
+                lineNum = lineNum
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             replace_line('{}'.format(self.inpFile),
                          lineNum,
                          '{} = {}'.format(param, value))
 
     def modJob(self, tme):
-        for i in range(self.scanNum):
+        for i in self.scanIDs:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             replace_line('{}.job'.format(self.addType),
                          find_line('{}.job'.format(self.addType),
@@ -258,10 +288,13 @@ class addSim:
                                    '--time'),
                          '#SBATCH --time={}'.format(tme))
 
-    def subJob(self):
-        for i in range(self.scanNum):
+    def subJob(self, shortQ=False):
+        for i in self.scanIDs:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
-            os.system('sbatch {}.job'.format(self.addType))
+            if shortQ is False:
+                os.system('sbatch {}.job'.format(self.addType))
+            elif shortQ is True:
+                os.system('sbatch -q short {}.job'.format(self.addType))
 
 
 class addNeutrals(addSim):
@@ -282,83 +315,13 @@ class addTurbulence(addSim):
     export
     PYTHONPATH=/mnt/lustre/groups/phys-bout-2019/BOUT-dev/tools/pylib/:$PYTHONPATH
     '''
-    def __init__(self, runDir, logFile='log.txt', scanParams=[]):
-        super().__init__(runDir, logFile)
-        if len(scanParams) == 0:
-            self.paramNums = list(np.arange(len(self.scanParams)))
-        else:
-            self.paramNums = scanParams
-
-    def copyNonRestart(self, oldDir, addType):
-        self.addType = addType
-        for i in self.paramNums:
-            os.chdir('{}/{}'.format(self.runDir, i))
-            os.system('mkdir -p {}'.format(addType))
-            os.system('cp {}/{} {}'.format(oldDir, self.inpFile, addType))
-            if type(self.gridFile) != str:
-                os.system('cp {} {}'.format(self.gridFile[i], addType))
-            else:
-                os.system('cp {} {}'.format(self.gridFile, addType))
-            os.system('cp *.job {}/{}.job'.format(addType, addType))
-
-    def copyNewInp(self, oldDir, inpName):
-        for i in self.paramNums:
-            os.system('cp {}/{} {}/{}/{}/BOUT.inp'.format(
-                oldDir, inpName, self.runDir, i, self.addType))
-
-    def redistributeProcs(self, oldDir, addType, npes):
-        self.copyNonRestart(oldDir, addType)
-        for i in self.paramNums:
-            os.chdir('{}/{}'.format(self.runDir, i))
-            redistribute(npes=npes, path=oldDir, output=addType)
-        self.nProcs = npes
-
     def addTurb(self, oldDir, addType, MZ=64, param='Vort',
                 pScale=1e-5, multiply=True):
-        self.copyNonRestart(oldDir, addType)
-        for i in self.paramNums:
+        self.copyInpFiles(oldDir, addType)
+        for i in self.scanIDs:
             os.chdir('{}/{}'.format(self.runDir, i))
             resizeZ(newNz=MZ, path=oldDir, output=addType)
             addnoise(path=addType, var=param, scale=pScale)
-
-    def modJob(self, tme):
-        for i in self.paramNums:
-            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
-            replace_line('{}.job'.format(self.addType),
-                         find_line('{}.job'.format(self.addType),
-                                   '--ntasks'),
-                         '#SBATCH --ntasks={}'.format(self.nProcs))
-            replace_line('{}.job'.format(self.addType),
-                         find_line('{}.job'.format(self.addType),
-                                   'mpiexec'),
-                         'mpiexec -n {} {} -d {}/{}/{} restart'.format(
-                             self.nProcs, self.hermesVer, self.runDir,
-                             i, self.addType))
-            replace_line('{}.job'.format(self.addType),
-                         find_line('{}.job'.format(self.addType),
-                                   '--job-name'),
-                         '#SBATCH --job-name={}-{}'.format(self.addType, i))
-            replace_line('{}.job'.format(self.addType),
-                         find_line('{}.job'.format(self.addType),
-                                   '--time'),
-                         '#SBATCH --time={}'.format(tme))
-
-    def modFile(self, param, value, lineNum=None):
-        if lineNum is not None:
-            lineNum = find_line('{}/0/{}'.format(self.runDir, self.inpFile),
-                                param)
-        else:
-            lineNum = lineNum
-        for i in self.paramNums:
-            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
-            replace_line('{}'.format(self.inpFile),
-                         lineNum,
-                         '{} = {}'.format(param, value))
-
-    def subJob(self):
-        for i in self.paramNums:
-            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
-            os.system('sbatch {}.job'.format(self.addType))
 
 
 class testTurbulence(addSim):
@@ -449,11 +412,12 @@ if __name__ == "__main__":
     # addT = testTurbulence(runDir)
     # addT.copyFiles2('3-addC', '4-addT')
     # addT.modJob(tme)
-    addT = addTurbulence(runDir, scanParams=[0])
+    addT = addTurbulence(runDir, scanIDs=[0])
     addT.hermesVer = hermesVer
-    # addT.redistributeProcs('3-addC', '4-redistribute', 480)
-    # addT.addTurb('4-redistribute', '5-addT')
-    addT.copyFiles2('3-addC', 'test-turb')
+    addT.redistributeProcs('3-addC', '4-redistribute', 480)
+    addT.addTurb('4-redistribute', '5-addT')
+    addT.copyInpFiles('3-addC', '5-addT')
     addT.copyNewInp(runDir, 'BOUT2.inp')
+    addT.modInp('grid')
     addT.modJob(tme)
-    # addT.subJob()
+    addT.subJob()
