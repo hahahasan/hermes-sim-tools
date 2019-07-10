@@ -6,10 +6,11 @@ import time
 from boutdata.restart import addvar
 from boutdata.restart import addnoise
 from boutdata.restart import resizeZ
+from boutdata.restart import redistribute
 from inspect import getsource as GS
 
 
-def funcReqs(obj):
+def func_reqs(obj):
     lines = GS(obj).partition(':')[0]
     print(lines)
 
@@ -185,6 +186,7 @@ class addSim:
     def __init__(self, runDir, logFile='log.txt'):
         self.runDir = runDir
         os.chdir(runDir)
+        self.scanParams = read_line(logFile, 'scanParams')
         self.scanNum = len(read_line(logFile, 'scanParams'))
         self.title = read_line(logFile, 'title')
         # self.inpFile = read_line(logFile, 'inpFile')
@@ -280,18 +282,94 @@ class addTurbulence(addSim):
     export
     PYTHONPATH=/mnt/lustre/groups/phys-bout-2019/BOUT-dev/tools/pylib/:$PYTHONPATH
     '''
-    def addTurb(self, MZ=64, param='Vort', pScale=1e-5, multiply=True):
-        for i in range(self.scanNum):
+    def __init__(self, runDir, logFile='log.txt', scanParams=[]):
+        super().__init__(runDir, logFile)
+        if len(scanParams) == 0:
+            self.paramNums = list(np.arange(len(self.scanParams)))
+        else:
+            self.paramNums = scanParams
+
+    def copyNonRestart(self, oldDir, addType):
+        self.addType = addType
+        for i in self.paramNums:
+            os.chdir('{}/{}'.format(self.runDir, i))
+            os.system('mkdir -p {}'.format(addType))
+            os.system('cp {}/{} {}'.format(oldDir, self.inpFile, addType))
+            if type(self.gridFile) != str:
+                os.system('cp {} {}'.format(self.gridFile[i], addType))
+            else:
+                os.system('cp {} {}'.format(self.gridFile, addType))
+            os.system('cp *.job {}/{}.job'.format(addType, addType))
+
+    def copyNewInp(self, oldDir, inpName):
+        for i in self.paramNums:
+            os.system('cp {}/{} {}/{}/{}/BOUT.inp'.format(
+                oldDir, inpName, self.runDir, i, self.addType))
+
+    def redistributeProcs(self, oldDir, addType, npes):
+        self.copyNonRestart(oldDir, addType)
+        for i in self.paramNums:
+            os.chdir('{}/{}'.format(self.runDir, i))
+            redistribute(npes=npes, path=oldDir, output=addType)
+        self.nProcs = npes
+
+    def addTurb(self, oldDir, addType, MZ=64, param='Vort',
+                pScale=1e-5, multiply=True):
+        self.copyNonRestart(oldDir, addType)
+        for i in self.paramNums:
+            os.chdir('{}/{}'.format(self.runDir, i))
+            resizeZ(newNz=MZ, path=oldDir, output=addType)
+            addnoise(path=addType, var=param, scale=pScale)
+
+    def modJob(self, tme):
+        for i in self.paramNums:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
-            resizeZ(newNz=MZ, path='../', output='./')
-            addnoise(path='.', var=param, scale=pScale)
+            replace_line('{}.job'.format(self.addType),
+                         find_line('{}.job'.format(self.addType),
+                                   '--ntasks'),
+                         '#SBATCH --ntasks={}'.format(self.nProcs))
+            replace_line('{}.job'.format(self.addType),
+                         find_line('{}.job'.format(self.addType),
+                                   'mpiexec'),
+                         'mpiexec -n {} {} -d {}/{}/{} restart'.format(
+                             self.nProcs, self.hermesVer, self.runDir,
+                             i, self.addType))
+            replace_line('{}.job'.format(self.addType),
+                         find_line('{}.job'.format(self.addType),
+                                   '--job-name'),
+                         '#SBATCH --job-name={}-{}'.format(self.addType, i))
+            replace_line('{}.job'.format(self.addType),
+                         find_line('{}.job'.format(self.addType),
+                                   '--time'),
+                         '#SBATCH --time={}'.format(tme))
+
+    def modFile(self, param, value, lineNum=None):
+        if lineNum is not None:
+            lineNum = find_line('{}/0/{}'.format(self.runDir, self.inpFile),
+                                param)
+        else:
+            lineNum = lineNum
+        for i in self.paramNums:
+            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
+            replace_line('{}'.format(self.inpFile),
+                         lineNum,
+                         '{} = {}'.format(param, value))
+
+    def subJob(self):
+        for i in self.paramNums:
+            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
+            os.system('sbatch {}.job'.format(self.addType))
 
 
 class testTurbulence(addSim):
-    def addTurb(self, simIndex, MZ=64, param='Vort', pScale=1e-5,
+    def redistributeProcs(self, ):
+        print('hi')
+
+    def addTurb(self, inpPath, turbPath, MZ=64, param='Vort', pScale=1e-5,
                 multiply=True):
-        os.chdir('{}/{}/{}'.format(self.runDir, simIndex, self.addType))
-        resizeZ(newNz=MZ, path='../', output='./')
+        os.chdir(inpPath)
+        os.system('mkdir -p {}'.format(turbPath))
+        resizeZ(newNz=MZ, path='./', output=turbPath)
         addnoise(path='.', var=param, scale=pScale, multiply=True)
 
 
@@ -314,7 +392,8 @@ if __name__ == "__main__":
     # tme = '10:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
     # hermesVer = '/mnt/lustre/groups/phys-bout-2019/hermes-2-next/hermes-2'
-    hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
+    # hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
+    hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
 
     grids = ['tcv_63127_64x64_profiles_0.8e19.nc',
              'tcv_63127_64x64_profiles_1.2e19.nc',
@@ -346,6 +425,7 @@ if __name__ == "__main__":
     # runDir = '/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728'
     # runDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan/test'
 
     # addN = addNeutrals(runDir)
     # addN.copyFiles('2-addN')
@@ -365,7 +445,15 @@ if __name__ == "__main__":
     # addC.modJob(tme)
     # addC.subJob()
 
-    tme = '1-23:55:55'
-    addT = testTurbulence(runDir)
-    addT.copyFiles2('3-addC', '4-addT')
+    tme = '23:55:55'
+    # addT = testTurbulence(runDir)
+    # addT.copyFiles2('3-addC', '4-addT')
+    # addT.modJob(tme)
+    addT = addTurbulence(runDir, scanParams=[0])
+    addT.hermesVer = hermesVer
+    # addT.redistributeProcs('3-addC', '4-redistribute', 480)
+    # addT.addTurb('4-redistribute', '5-addT')
+    addT.copyFiles2('3-addC', 'test-turb')
+    addT.copyNewInp(runDir, 'BOUT2.inp')
     addT.modJob(tme)
+    # addT.subJob()
