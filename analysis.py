@@ -620,12 +620,17 @@ if __name__ == "__main__":
              'Tnorm', 'Cs0', 'Ne', 'Qi', 'S', 'F', 'Rp', 'Pn']
     # q_ids = ['Ne']
 
-    cScan = analyse('/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728')
-    rScan = analyse('/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728')
-    dScan = analyse('/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947')
-    newDScan = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
+    # cScan = analyse('/users/hm1234/scratch/TCV/'
+    #                 'longtime/cfrac-10-06-19_175728')
+    # rScan = analyse('/users/hm1234/scratch/TCV/'
+    #                 'longtime/rfrac-19-06-19_102728')
+    # dScan = analyse('/users/hm1234/scratch/TCV2/'
+    #                 'gridscan/grid-20-06-19_135947')
+    # newDScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'gridscan/grid-01-07-19_185351')
+    tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351')
+    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/test')
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
@@ -636,6 +641,6 @@ if __name__ == "__main__":
     #                     yind=[-1, 37, -10],
     #                     tind=-1)
 
-    newDScan.neScanConv()
+    # newDScan.neScanConv()
 
     # newDScan.neConv(0)
