@@ -341,16 +341,18 @@ if __name__ == "__main__":
     gridFile = 'tcv_52068_64x64_profiles_1e19.nc'
 
     pathOut = '/users/hm1234/scratch/newTCV'
-    pathIn = 'gridscan'
+    pathIn = 'turb-test'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
+    # dateDir = '_turbTest'
 
     # title = 'cfrac'
     # scanParams = [0.01, 0.02, 0.03, 0.05, 0.07]
 
-    title = 'grid'
+    title = 'g'
     # scanParams = [0.9, 0.93, 0.96, 0.99]
+    scanParams = [0.95]
 
-    nProcs = 160
+    nProcs = 640
     tme = '23:55:55'  # hr:min:sec
     # tme = '10:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
@@ -362,25 +364,26 @@ if __name__ == "__main__":
              'tcv_63127_64x64_profiles_1.2e19.nc',
              'tcv_63127_64x64_profiles_1.6e19.nc',
              'tcv_63127_64x64_profiles_2.0e19.nc']
+    gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
     # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
     # gridSim.setup()
-    # gridSim.modInp2('carbon_fraction', 0.04)
+    # # gridSim.modInp2('carbon_fraction', 0.04)
     # gridSim.modInp2('frecycle', 0.95)
     # gridSim.modInp2('NOUT', 444)
     # gridSim.modInp2('TIMESTEP', 222)
     # gridSim.modJob(nProcs, hermesVer, tme)
     # gridSim.subJob()
 
-    # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
-    #                 scanParams, title)
-    # sim1.setup()
-    # sim1.modInp1('frecycle')
-    # sim1.modInp2('NOUT', 444)
-    # sim1.modInp2('TIMESTEP', 222)
+    sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
+                    scanParams, title)
+    sim1.setup()
+    sim1.modInp1('frecycle')
+    sim1.modInp2('NOUT', 444)
+    sim1.modInp2('TIMESTEP', 222)
     # sim1.modInp2('carbon_fraction', 0.04)
-    # sim1.modJob(nProcs, hermesVer, tme)
-    # sim1.subJob()
+    sim1.modJob(nProcs, hermesVer, tme)
+    sim1.subJob()
 
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/NeScan-03-06-19_171145'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/frecycle-05-06-19_145457'
@@ -408,16 +411,18 @@ if __name__ == "__main__":
     # addC.modJob(tme)
     # addC.subJob()
 
-    tme = '23:55:55'
-    # addT = testTurbulence(runDir)
-    # addT.copyFiles2('3-addC', '4-addT')
+    # tme = '23:55:55'
+    # # addT = testTurbulence(runDir)
+    # # addT.copyFiles2('3-addC', '4-addT')
+    # # addT.modJob(tme)
+    # addT = addTurbulence(runDir, scanIDs=[3])
+    # addT.hermesVer = hermesVer
+    # # addT.redistributeProcs('3-addC', '4-redistribute', 480)
+    # # addT.addTurb('4-redistribute', '5-addT')
+    # addT.addTurb('3-addC', '5-addT')
+    # # addT.copyInpFiles('3-addC', '5-addT')
+    # addT.copyNewInp(runDir, 'BOUT2.inp')
+    # addT.modInp('grid')
+    # addT.modFile('TIMESTEP', 0.002)
     # addT.modJob(tme)
-    addT = addTurbulence(runDir, scanIDs=[0])
-    addT.hermesVer = hermesVer
-    addT.redistributeProcs('3-addC', '4-redistribute', 480)
-    addT.addTurb('4-redistribute', '5-addT')
-    addT.copyInpFiles('3-addC', '5-addT')
-    addT.copyNewInp(runDir, 'BOUT2.inp')
-    addT.modInp('grid')
-    addT.modJob(tme)
-    addT.subJob()
+    # addT.subJob()
