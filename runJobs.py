@@ -89,8 +89,8 @@ class startSim:
             os.chdir(pathOut)
             os.mkdir(pathIn)
 
-    def modInp1(self, param, ambiguous=False, lineNum=None):
-        if ambiguous is False:
+    def modInp1(self, param, lineNum=None):
+        if lineNum is None:
             lineNum = find_line('{}/{}'.format(self.pathOut, self.inpFile),
                                 param)
         else:
@@ -101,9 +101,9 @@ class startSim:
                          lineNum,
                          '{} = {}'.format(param, j))
 
-    def modInp2(self, param, value, ambiguous=False, lineNum=None):
+    def modInp2(self, param, value, lineNum=None):
         self.log('Modified {} to: {}'.format(param, value))
-        if ambiguous is False:
+        if lineNum is None:
             lineNum = find_line('{}/{}'.format(self.pathOut, self.inpFile),
                                 param)
         else:
@@ -375,36 +375,48 @@ if __name__ == "__main__":
     # gridSim.modJob(nProcs, hermesVer, tme)
     # gridSim.subJob()
 
-    sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
-                    scanParams, title)
-    sim1.setup()
-    sim1.modInp1('frecycle')
-    sim1.modInp2('NOUT', 444)
-    sim1.modInp2('TIMESTEP', 222)
-    # sim1.modInp2('carbon_fraction', 0.04)
-    sim1.modJob(nProcs, hermesVer, tme)
-    sim1.subJob()
+    # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
+    #                 scanParams, title)
+    # sim1.setup()
+    # sim1.modInp1('frecycle')
+    # sim1.modInp2('NOUT', 444)
+    # sim1.modInp2('TIMESTEP', 222)
+    # # sim1.modInp2('carbon_fraction', 0.04)
+    # sim1.modJob(nProcs, hermesVer, tme)
+    # sim1.subJob()
 
+    tme = '23:55:55'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/NeScan-03-06-19_171145'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/frecycle-05-06-19_145457'
     # runDir = '/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728'
     # runDir = '/users/hm1234/scratch/TCV/longtime/rfrac-19-06-19_102728'
     # runDir = '/users/hm1234/scratch/TCV2/gridscan/grid-20-06-19_135947'
-    runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351'
-    runDir = '/users/hm1234/scratch/newTCV/gridscan/test'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan/test'
+    runDir = '/users/hm1234/scratch/newTCV/turb-test/g-18-07-19_133047'
 
     # addN = addNeutrals(runDir)
-    # addN.copyFiles('2-addN')
+    # addN.copyInpFiles(addType='2-addN')
+    # addN.copyRestartFiles(addType='2-addN')
     # addN.modFile('NOUT', 555)
     # addN.modFile('TIMESTEP', 150)
-    # addN.modFile('type', 'mixed', ambiguous=True, lineNum=214)
+    # addN.modFile('type', 'mixed', lineNum=223)
     # addN.modJob(tme)
-    # addN.addVar(Nn=0.1, Pn=0.05)
+    # addN.addVar(Nn=0.08, Pn=0.04)
     # addN.subJob()
 
-    # tme = '23:55:55'
     # addC = addCurrents(runDir)
-    # addC.copyFiles2('2-addN', '3-addC')
+    # addC.copyInpFiles(addType='2-addC')
+    # addC.copyRestartFiles(addType='2-addC')
+    # addC.modFile('j_par', 'true')
+    # addC.modFile('j_diamag', 'true')
+    # addC.modFile('TIMESTEP', 333)
+    # addC.modJob(tme)
+    # addC.subJob()
+
+    # addC = addCurrents(runDir)
+    # addC.copyInpFiles('2-addN', '3-addC')
+    # addC.copyRestartFiles('2-addN', '2-addC')
     # addC.modFile('j_par', 'true')
     # addC.modFile('j_diamag', 'true')
     # addC.modFile('TIMESTEP', 333)
@@ -425,4 +437,15 @@ if __name__ == "__main__":
     # addT.modInp('grid')
     # addT.modFile('TIMESTEP', 0.002)
     # addT.modJob(tme)
+    # addT.subJob()
+
+    # addT = addTurbulence(runDir)
+    # addT.copyInpFiles('2-addC', '4-addT')
+    # addT.addTurb('2-addC', '4-addT')
+    # addT.modJob(tme)
+    # addT.modFile('MZ', 64)
+    # addT.modFile('NOUT', 333)
+    # addT.modFile('TIMESTEP', 0.04)
+    # addT.modFile('output_ddt', 'true')
+    # addT.modFile('verbose', 'true')
     # addT.subJob()
