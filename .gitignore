@@ -1,7 +1,5 @@
 *~
-test/
-test2/
-test3/
+*test*
 *.nc
 !tcv_63127_64x64.nc
 *#
