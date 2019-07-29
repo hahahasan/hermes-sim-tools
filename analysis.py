@@ -198,6 +198,8 @@ class analyse:
         self.ny = int(grid_dat["ny"])
         self.R = grid_dat['Rxy']
         self.Z = grid_dat['Zxy']
+        R2 = self.R[:, self.j12:self.j22]
+        self.outMid_idx = self.j12 + np.where(R2 == np.amax(R2))[1][0]
 
     def unPickle(self, quant, simIndex=0, simType='1-base'):
         os.chdir('{}/{}/{}'.format(self.dataDir, simIndex, simType))
@@ -281,6 +283,135 @@ class analyse:
 
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
+
+    def plotGridContours(self, yind=[],
+                         labels=[]):
+        if ((len(labels) == 0) and (len(yind) == 0)):
+            yind = [self.outMid_idx, -1]
+            labels = ['Out Mid', 'Target']
+        for i in range(self.nx):
+            plt.plot(self.R[:, i], self.Z[:, i], linewidth=1,
+                     color='k', alpha=0.5)
+        for i, j in enumerate(yind):
+            plt.plot(self.R[:, j], self.Z[:, j],
+                     linewidth=4, label=labels[i])
+        plt.xlabel('R (m)')
+        plt.ylabel('Z (m)')
+        plt.grid(False)
+        plt.legend(bbox_to_anchor=[1, 0.5])
+        plt.axis('scaled')
+        plt.tight_layout()
+        plt.show()
+
+    def noRxScan(self, simType, quant, yind, tind=-1, norms=None,
+                 qlabels=None, ylabels=None):
+
+        # style.use('seaborn-whitegrid')
+        qlen = len(quant)
+        ylen = len(yind)
+
+        if norms is None:
+            norms = np.ones(qlen)
+
+        if ylabels is None:
+            ylabels = []
+            for i in range(ylen):
+                ylabels.append(yind[i])
+
+        if qlabels is None:
+            qlabels = []
+            for i in range(qlen):
+                qlabels.append(quant[i])
+
+        fig, axs = plt.subplots(qlen+1, ylen, figsize=(10, 10))
+        colors = getDistinctColors(len(self.scanParams))
+
+        quants = []
+        for i, j in enumerate(quant):
+            tmp = self.scanCollect(j, simType)
+            for k in range(len(tmp)):
+                tmp[k] = norms[i]*tmp[k]
+            # tmp *= norms[i]*tmp
+            quants.append(tmp)
+
+        ix1 = self.ix1
+
+        for qNum in range(qlen):
+            for yNum, y in enumerate(yind):
+                if np.logical_and(qlen > 1, ylen > 1):
+                    a = eval('axs[qNum, yNum]')
+                elif np.logical_and(qlen == 1, ylen > 1):
+                    a = eval('axs[yNum]')
+                elif np.logical_and(qlen > 1, ylen == 1):
+                    a = eval('axs[qNum]')
+                elif np.logical_and(qlen == 1, ylen == 1):
+                    a = eval('axs')
+                for i, q in enumerate(quants[qNum]):
+                    # print(qNum, yNum)
+                    a.plot(q[tind, :, y],
+                           color=colors[i],
+                           label=self.scanParams[i])
+                    a.axvline(ix1, color='k',
+                              linestyle='--')
+                    # a.set_xlim([np.amin(np.array(Ry[yNum])),
+                    #             np.amax(np.array(Ry[yNum]))])
+                    a.yaxis.set_major_formatter(
+                        FormatStrFormatter('%g'))
+
+        for i in range(ylen):
+            if np.logical_and(qlen > 1, ylen > 1):
+                a = eval('axs[-1, i]')
+            elif np.logical_and(qlen == 1, ylen > 1):
+                a = eval('axs[i]')
+            elif np.logical_and(qlen > 1, ylen == 1):
+                a = eval('axs[-1]')
+            elif np.logical_and(qlen == 1, ylen == 1):
+                a = eval('axs')
+            a.set_xlabel(ylabels[i])
+
+        for j in range(0, qlen-1):
+            for i in range(ylen):
+                if np.logical_and(qlen > 1, ylen > 1):
+                    a = eval('axs[j, i]')
+                elif np.logical_and(qlen == 1, ylen > 1):
+                    a = eval('axs[i]')
+                elif np.logical_and(qlen > 1, ylen == 1):
+                    a = eval('axs[j]')
+                elif np.logical_and(qlen == 1, ylen == 1):
+                    a = eval('axs')
+                a.xaxis.set_ticklabels([])
+                # axs[j, i].xaxis.set_ticklabels([])
+
+        for i in range(qlen):
+            if np.logical_and(qlen > 1, ylen > 1):
+                a = eval('axs[i, 0]')
+            elif np.logical_and(qlen == 1, ylen > 1):
+                a = eval('axs[0]')
+            elif np.logical_and(qlen > 1, ylen == 1):
+                a = eval('axs[i]')
+            elif np.logical_and(qlen == 1, ylen == 1):
+                a = eval('axs')
+            a.set_ylabel(qlabels[i])
+            # axs[i, 0].set_ylabel(qlabels[i])
+
+        fig
+        plt.legend(loc='upper center', ncol=2,
+                   bbox_to_anchor=[0.5, 1],
+                   bbox_transform=plt.gcf().transFigure,
+                   # shadow=True,
+                   fancybox=True,
+                   title=self.title)
+        # plt.tight_layout()
+        plt.subplots_adjust(hspace=0.04)  # wspace=0
+
+        # plt.suptitle(self.title)
+        # plt.subplot_tool()
+        plt.show()
+
+        # os.chdir('/users/hm1234/scratch/hermes-sim-tools/test3')
+        # plt.savefig(str(tind).zfill(4), bbox_inches='tight')
+        # plt.close()
+        # plt.cla()
 
     def quantXScan(self, simType, quant, yind, tind=-1, norms=None,
                    qlabels=None, ylabels=None):
@@ -563,7 +694,7 @@ class analyse:
         fig = plt.figure()
         grid = plt.GridSpec(2, len(subDirs))
         ix1 = self.ix1
-        mid = int(0.5*(self.j12+self.j22))
+        mid = self.outMid_idx
         # mid = -1
         # ix1 = 5
 
@@ -622,6 +753,11 @@ class analyse:
 
 
 if __name__ == "__main__":
+    font = {'family': 'normal',
+            'weight': 'normal',
+            'size': 14}
+    matplotlib.rc('font', **font)
+
     dateDir = '/home/hm1234/Documents/Project/remotefs/viking/'\
         'TCV/longtime/cfrac-10-06-19_175728'
 
