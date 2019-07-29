@@ -339,31 +339,32 @@ class testTurbulence(addSim):
 if __name__ == "__main__":
     inpFile = 'BOUT.inp'
     gridFile = 'tcv_52068_64x64_profiles_1e19.nc'
+    gridFile = 'tcv_63127_64x64_profiles_1.2e19.nc'
 
     pathOut = '/users/hm1234/scratch/newTCV'
-    pathIn = 'turb-test'
+    pathIn = 'scans'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # dateDir = '_turbTest'
 
     # title = 'cfrac'
     # scanParams = [0.01, 0.02, 0.03, 0.05, 0.07]
 
-    title = 'g'
-    # scanParams = [0.9, 0.93, 0.96, 0.99]
-    scanParams = [0.95]
+    title = 'rfrac'
+    scanParams = [0.9, 0.93, 0.96, 0.99]
+    # scanParams = [0.95]
 
-    nProcs = 640
-    tme = '23:55:55'  # hr:min:sec
+    nProcs = 160
+    tme = '00:22:22'  # day-hr:min:sec
     # tme = '10:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
     # hermesVer = '/mnt/lustre/groups/phys-bout-2019/hermes-2-next/hermes-2'
     # hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
 
-    grids = ['tcv_63127_64x64_profiles_0.8e19.nc',
-             'tcv_63127_64x64_profiles_1.2e19.nc',
-             'tcv_63127_64x64_profiles_1.6e19.nc',
-             'tcv_63127_64x64_profiles_2.0e19.nc']
+    # grids = ['tcv_63127_64x64_profiles_0.8e19.nc',
+    #          'tcv_63127_64x64_profiles_1.2e19.nc',
+    #          'tcv_63127_64x64_profiles_1.6e19.nc',
+    #          'tcv_63127_64x64_profiles_2.0e19.nc']
     gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
     # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
@@ -375,17 +376,20 @@ if __name__ == "__main__":
     # gridSim.modJob(nProcs, hermesVer, tme)
     # gridSim.subJob()
 
+    # inpFile = 'BOUT.inp'
     # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
     #                 scanParams, title)
     # sim1.setup()
     # sim1.modInp1('frecycle')
+    # sim1.modInp2('carbon_fraction', 0.95)
+    # sim1.modInp2('ion_viscosity', 'true')
     # sim1.modInp2('NOUT', 444)
     # sim1.modInp2('TIMESTEP', 222)
     # # sim1.modInp2('carbon_fraction', 0.04)
     # sim1.modJob(nProcs, hermesVer, tme)
-    # sim1.subJob()
+    # sim1.subJob(shortQ=True)
 
-    tme = '23:55:55'
+    tme = '23:59:59'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/NeScan-03-06-19_171145'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/frecycle-05-06-19_145457'
     # runDir = '/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728'
@@ -394,15 +398,20 @@ if __name__ == "__main__":
     # runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-01-07-19_185351'
     # runDir = '/users/hm1234/scratch/newTCV/gridscan/test'
     runDir = '/users/hm1234/scratch/newTCV/turb-test/g-18-07-19_133047'
+    runDir = '/users/hm1234/scratch/newTCV/scans/cfrac-23-07-19_163139'
+    runDir = '/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302'
 
     # addN = addNeutrals(runDir)
     # addN.copyInpFiles(addType='2-addN')
     # addN.copyRestartFiles(addType='2-addN')
+    # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
+    # #                 inpName='BOUT-2Dworks.inp')
     # addN.modFile('NOUT', 555)
     # addN.modFile('TIMESTEP', 150)
-    # addN.modFile('type', 'mixed', lineNum=223)
+    # # addN.modFile('neutral_friction', 'true')
+    # addN.modFile('type', 'mixed', lineNum=214)
     # addN.modJob(tme)
-    # addN.addVar(Nn=0.08, Pn=0.04)
+    # addN.addVar(Nn=0.04, Pn=0.02)
     # addN.subJob()
 
     # addC = addCurrents(runDir)
@@ -414,14 +423,17 @@ if __name__ == "__main__":
     # addC.modJob(tme)
     # addC.subJob()
 
-    # addC = addCurrents(runDir)
-    # addC.copyInpFiles('2-addN', '3-addC')
-    # addC.copyRestartFiles('2-addN', '2-addC')
-    # addC.modFile('j_par', 'true')
-    # addC.modFile('j_diamag', 'true')
-    # addC.modFile('TIMESTEP', 333)
-    # addC.modJob(tme)
-    # addC.subJob()
+    tme = '1-11:11:11'
+    old = '2-addN'
+    new = '3-addC'
+    addC = addCurrents(runDir)
+    addC.copyInpFiles(old, new)
+    addC.copyRestartFiles(old, new)
+    addC.modFile('j_par', 'true')
+    addC.modFile('j_diamag', 'true')
+    addC.modFile('TIMESTEP', 333)
+    addC.modJob(tme)
+    addC.subJob()
 
     # tme = '23:55:55'
     # # addT = testTurbulence(runDir)
