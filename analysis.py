@@ -38,8 +38,8 @@ def funcReqs(obj):
 
 def getDistinctColors(n):
     huePartition = 1.0/(n+1)
-    colors = [colorsys.hsv_to_rgb(huePartition*value, 1.0, 1.0) for value in
-              range(0, n)]
+    colors = [colorsys.hsv_to_rgb(
+        huePartition*value, 1.0, 1.0) for value in range(0, n)]
     return colors
 
 
@@ -243,11 +243,11 @@ class analyse:
         for i in dataDir:
             newDir += '/' + i
 
-        quant = self.scanCollect(simType, quant)
+        quant = self.scanCollect(quant, simType)
         interval = slice(0, -1, interval)
         titles = self.scanParams
 
-        tme = self.scanCollect(simType, 't_array')
+        tme = self.scanCollect('t_array', simType)
         times = []
         for i in tme:
             times.append(i.shape[0])
@@ -277,12 +277,12 @@ class analyse:
         # return newQuant, newTitles, newTme
 
         showdata(newQuant, titles=newTitles, t_array=newTme,
-                 movie=movie, fps=fps, dpi=dpi)
+                 movie=movie, fps=fps, dpi=dpi, cmap='ocean')
 
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
 
-    def quantYScan(self, simType, quant, yind, tind=-1, norms=None,
+    def quantXScan(self, simType, quant, yind, tind=-1, norms=None,
                    qlabels=None, ylabels=None):
 
         # style.use('seaborn-whitegrid')
@@ -396,7 +396,7 @@ class analyse:
         # plt.close()
         # plt.cla()
 
-    def quantXScan(self, simType, quant, xind, tind=-1, norms=None,
+    def quantYScan(self, simType, quant, xind, tind=-1, norms=None,
                    qlabels=None, xlabels=None):
         '''
         simType: typically either 1-base, 2-AddN, 3-AddC, 4-addT
@@ -600,13 +600,24 @@ class analyse:
 
         tmp = fig.add_subplot(grid[1, :])
         for j in range(len(ne[0])):
-            tmp.plot(tme_all[j], ne_all[j][:, ix1, mid])
+            tmp.plot(tme_all[j], ne_all[j][:, ix1, mid],
+                     label=self.scanParams[j])
 
         for i in range(len(tme)-1):
             tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
                         linestyle='--')
         tmp.set_xlabel(r'Time ($\mu s$)')
         tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+
+        fig
+        plt.legend(loc='upper center', ncol=2,
+                   bbox_to_anchor=[0.4, 1],
+                   bbox_transform=plt.gcf().transFigure,
+                   borderaxespad=0.0,
+                   # shadow=True,
+                   fancybox=True,
+                   title=self.title)
+
         plt.show()
 
 
@@ -628,21 +639,27 @@ if __name__ == "__main__":
                     'gridscan/grid-20-06-19_135947')
     newDScan = analyse('/users/hm1234/scratch/newTCV/'
                        'gridscan/grid-01-07-19_185351')
+    newCScan = analyse('/users/hm1234/scratch/newTCV/'
+                       'scans/cfrac-23-07-19_163139')
+    newRScan = analyse('/users/hm1234/scratch/newTCV/'
+                       'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/test')
+    # x = pickleData('/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302')
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
     # for k in np.arange(556):
-    newDScan.quantYScan(simType='2-addN',
-                        quant=qlabels,
-                        yind=[-1, 37, -10],
-                        tind=-1)
+    # newDScan.quantYScan(simType='2-addN',
+    #                     quant=qlabels,
+    #                     yind=[-1, 37, -10],
+    #                     tind=-1)
 
     # newDScan.neScanConv()
 
     # newDScan.neConv(0)
+
+    # newCScan.neScanConv()
 
     # cScan.quantYScan(simType='3-addC', quant=['Telim'], yind=[-1])
