@@ -11,6 +11,9 @@ import os
 import sys
 import fnmatch
 import numpy as np
+from scipy.optimize import curve_fit
+from scipy.special import erfc
+
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.style as style
@@ -214,10 +217,17 @@ class analyse:
                 os.chdir('{}/{}'.format(self.outDir, simIndex))
             else:
                 os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-            quant2 = np.squeeze(collect(quant))
+            try:
+                quant2 = np.squeeze(collect(quant))
+            except(ValueError):
+                print('quant in gridFile')
+                self.gridFile = fnmatch.filter(next(os.walk('./'))[2],
+                                               '*profile*')[0]
+                grid_dat = DataFile(self.gridFile)
+                quant2 = grid_dat[quant]
         return quant2
 
-    def scanCollect(self, quant, simType):
+    def scanCollect(self, quant, simType='3-addC'):
         x = []
         if quant == 't_array':
             for i in range(self.scanNum):
@@ -284,8 +294,7 @@ class analyse:
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
 
-    def plotGridContours(self, yind=[],
-                         labels=[]):
+    def plotGridContoursX(self, yind=[], labels=[]):
         if ((len(labels) == 0) and (len(yind) == 0)):
             yind = [self.outMid_idx, -1]
             labels = ['Out Mid', 'Target']
@@ -295,6 +304,24 @@ class analyse:
         for i, j in enumerate(yind):
             plt.plot(self.R[:, j], self.Z[:, j],
                      linewidth=4, label=labels[i])
+        plt.xlabel('R (m)')
+        plt.ylabel('Z (m)')
+        plt.grid(False)
+        plt.legend(bbox_to_anchor=[1, 0.5])
+        plt.axis('scaled')
+        plt.tight_layout()
+        plt.show()
+
+    def plotGridContoursY(self, xind=[], labels=[]):
+        if ((len(labels) == 0) and (len(xind) == 0)):
+            xind = [self.ix1]
+            labels = ['Seperatrix']
+        for i in range(self.ny):
+            plt.plot(self.R[i, :], self.Z[i, :], linewidth=1,
+                     color='k', alpha=0.2)
+        for i, j in enumerate(xind):
+            plt.plot(self.R[j, :], self.Z[j, :],
+                     linewidth=2, label=labels[i])
         plt.xlabel('R (m)')
         plt.ylabel('Z (m)')
         plt.grid(False)
@@ -751,6 +778,72 @@ class analyse:
 
         plt.show()
 
+    def calcPsol(self, simIndex=0, simType='3-addC'):
+        spe = self.scanCollect('Spe', simType)[simIndex][-1, :, :]
+        spi = self.scanCollect('Spi', simType)[simIndex][-1, :, :]
+        J = self.scanCollect('J', simType)[simIndex]
+        dx = self.scanCollect('dx', simType)[simIndex]
+        dy = self.scanCollect('dy', simType)[simIndex]
+        dz = 2*np.pi
+        Psol_e = 0
+        Psol_i = 0
+        for i in range(self.nx):
+            for j in range(self.ny):
+                Psol_e += spe[i][j]*J[i][j]*dx[i][j]*dy[i][j]*dz
+                Psol_i += spi[i][j]*J[i][j]*dx[i][j]*dy[i][j]*dz
+        Psol_e *= 3/2
+        Psol_i *= 3/2
+        return Psol_e + Psol_i
+
+    def calc_qPar(self, simIndex=0, simType='3-addC'):
+        if simType == '1-base':
+            os.chdir('{}/{}'.format(self.outDir, simIndex))
+        else:
+            os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
+        datFile = DataFile('BOUT.dmp.0.nc')
+        Tnorm = float(datFile['Tnorm'])
+        Nnorm = float(datFile['Nnorm'])
+        gamma_e = 4
+        gamma_i = 2.5
+        mi = 3.34524e-27  # 2*Mp - deuterium
+        e = 1.6e-19
+        Te = self.collectData('Telim', simIndex, simType)[-1, :, -1]*Tnorm
+        Ti = self.collectData('Tilim', simIndex, simType)[-1, :, -1]*Tnorm
+        n = self.collectData('Ne', simIndex, simType)[-1, :, -1]*Nnorm
+        Cs = np.sqrt(Te + (5/3)*Ti)*np.sqrt(e/mi)
+        q_e = gamma_e * n * e * Te * Cs
+        q_i = gamma_i * n * e * Ti * Cs
+        return q_e + q_i
+
+    def centreNormalZ(self, simIndex=0, simType='3-addC'):
+        self.gridData(simIndex)
+        RsepOMP = self.R[self.ix1, self.outMid_idx]
+        RsepTar = self.R[self.ix1, -1]
+        Bp = self.collectData('Bpxy', simIndex, simType)
+        BpSepOMP = Bp[self.ix1, self.outMid_idx]
+        BpSepTar = Bp[self.ix1, -1]
+        fx = (RsepOMP * BpSepOMP) / (RsepTar * BpSepTar)
+        self.fx = fx
+        zSep = self.Z[self.ix1, -1]
+        s = (self.Z[:, -1] - zSep)
+        return s
+
+    def eich(self, x, qbg, q0, lambda_q, S):
+        scale = (q0/2)
+        exp = np.exp(((S/(2*lambda_q))**2) - (x/(lambda_q*self.fx)))
+        erf = erfc((S/(2*lambda_q)) - (x/(S*self.fx)))
+        q = (scale * exp * erf) + qbg
+        return q
+
+
+def eich(x, qbg, q0, lambda_q, S):
+    fx = 3.369536
+    scale = (q0/2)
+    exp = np.exp(((S/(2*lambda_q))**2) - (x/(lambda_q*fx)))
+    erf = erfc((S/(2*lambda_q)) - (x/(S*fx)))
+    q = (scale * exp * erf) + qbg
+    return q
+
 
 if __name__ == "__main__":
     font = {'family': 'normal',
@@ -781,10 +874,19 @@ if __name__ == "__main__":
                        'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    # x = pickleData('/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302')
+    # x = pickleData()
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
+
+    d = newDScan
+    c = newCScan
+    r = newRScan
+
+    q_par = d.calc_qPar(1, '3-addC')/1e6
+    s = d.centreNormalZ(1, '3-addC')*1000
+    plt.plot(s, q_par, 'ro', markersize=4)
+    plt.show()
 
     # for k in np.arange(556):
     # newDScan.quantYScan(simType='2-addN',
