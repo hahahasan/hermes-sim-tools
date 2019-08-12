@@ -845,7 +845,12 @@ def eich(x, qbg, q0, lambda_q, S):
     return q
 
 
-if __name__ == "__main__":
+def exp(x, q0, lambda_q):
+    y = q0*np.exp(-x/lambda_q) + 0.25
+    return y
+
+
+def main():
     font = {'family': 'normal',
             'weight': 'normal',
             'size': 14}
@@ -901,3 +906,21 @@ if __name__ == "__main__":
     # newCScan.neScanConv()
 
     # cScan.quantYScan(simType='3-addC', quant=['Telim'], yind=[-1])
+
+    plt.plot(s, q_par, 'ro', markersize=4)
+    i = 35
+    j = 60
+    plt.plot(s[i], q_par[i], 'bo', markersize=4)
+    plt.plot(s[j], q_par[j], 'bo', markersize=4)
+    x = s[i:j]
+    y = q_par[i:j]
+    popt, pcov = curve_fit(exp, x, y, p0=[2, 10])
+    plt.plot(x, exp(x, *popt), 'g-')
+    # popt, pcov = curve_fit(eich, x, y, p0=[2, 12, 1])
+    # plt.plot(x, eich(x, *popt), 'g-')
+    print(popt)
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
