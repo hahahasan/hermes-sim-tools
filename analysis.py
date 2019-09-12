@@ -24,6 +24,7 @@ from boututils.datafile import DataFile
 from boututils.showdata import showdata
 from boutdata.griddata import gridcontourf
 from boututils.plotdata import plotdata
+from boututils.boutarray import BoutArray
 import pickle
 import colorsys
 from inspect import getsource as GS
@@ -350,7 +351,7 @@ class analyse:
             for i in range(qlen):
                 qlabels.append(quant[i])
 
-        fig, axs = plt.subplots(qlen+1, ylen, figsize=(10, 10))
+        fig, axs = plt.subplots(qlen, ylen, figsize=(10, 10))
         colors = getDistinctColors(len(self.scanParams))
 
         quants = []
@@ -778,6 +779,30 @@ class analyse:
 
         plt.show()
 
+    def plotPeakTargetFlux(self, simType='3-addC'):
+        tmp_nvi = self.scanCollect(quant='NVi', simType=simType)
+
+        if self.title == 'grid':
+            nu = []
+            for i in range(len(self.scanParams)):
+                nu.append(eval(self.scanParams[i].split('e')[1][2:]))
+        else:
+            nu = self.scanParams
+        nvi = []
+        pk_idx = []
+        for i in range(len(tmp_nvi)):
+            nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, -3] +
+                                              tmp_nvi[i][-1, :, -2]))
+            pk_idx.append(np.where(nvi[-1] == np.amax(nvi[-1]))[0][0])
+
+        for i in range(len(nvi)):
+            plt.scatter(nu[i], nvi[i][pk_idx[i]], s=50)
+        plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
+        plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
+        plt.show()
+
+        return nu, nvi, pk_idx
+
     def calcPsol(self, simIndex=0, simType='3-addC'):
         spe = self.scanCollect('Spe', simType)[simIndex][-1, :, :]
         spi = self.scanCollect('Spi', simType)[simIndex][-1, :, :]
@@ -850,7 +875,7 @@ def exp(x, q0, lambda_q):
     return y
 
 
-def main():
+if __name__ == "__main__":
     font = {'family': 'normal',
             'weight': 'normal',
             'size': 14}
@@ -879,19 +904,22 @@ def main():
                        'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    # x = pickleData()
+    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
     d = newDScan
+    d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     c = newCScan
     r = newRScan
 
     q_par = d.calc_qPar(1, '3-addC')/1e6
     s = d.centreNormalZ(1, '3-addC')*1000
-    plt.plot(s, q_par, 'ro', markersize=4)
-    plt.show()
+
+    # for some reason
+    s = s.astype('float64')
+    q_par = q_par.astype('float64')
 
     # for k in np.arange(556):
     # newDScan.quantYScan(simType='2-addN',
@@ -907,20 +935,106 @@ def main():
 
     # cScan.quantYScan(simType='3-addC', quant=['Telim'], yind=[-1])
 
-    plt.plot(s, q_par, 'ro', markersize=4)
-    i = 35
-    j = 60
-    plt.plot(s[i], q_par[i], 'bo', markersize=4)
-    plt.plot(s[j], q_par[j], 'bo', markersize=4)
-    x = s[i:j]
-    y = q_par[i:j]
-    popt, pcov = curve_fit(exp, x, y, p0=[2, 10])
-    plt.plot(x, exp(x, *popt), 'g-')
-    # popt, pcov = curve_fit(eich, x, y, p0=[2, 12, 1])
+    # plt.plot(s, q_par, 'ro', markersize=4)
+    # i = 0 # 34
+    # j = 34 # 63
+    # plt.plot(s[i], q_par[i], 'bo', markersize=4)
+    # plt.plot(s[j], q_par[j], 'bo', markersize=4)
+    # x = s[i:j]
+    # y = q_par[i:j]
+    # popt, pcov = curve_fit(d.eich, x, y, maxfev=999999)
     # plt.plot(x, eich(x, *popt), 'g-')
-    print(popt)
-    plt.show()
+    # # popt, pcov = curve_fit(eich, x, y, p0=[2, 12, 1])
+    # # plt.plot(x, eich(x, *popt), 'g-')
+    # print(popt)
+    # plt.show()
 
+    s_orig = s
+    q_orig = q_par
 
-if __name__ == "__main__":
-    main()
+    s = BoutArray([-62.41107, -60.263752, -58.12967, -56.00941,
+                   -53.90376, -51.813484, -49.73972, -47.68342,
+                   -45.645176, -43.625893, -41.62586, -39.645134,
+                   -37.683605, -35.74103, -33.816814, -31.91042,
+                   -30.021072, -28.148056, -26.290417, -24.44762,
+                   -22.618889, -20.80363, -19.001366, -17.211676,
+                   -15.434324, -13.669193, -11.916161, -10.175467,
+                   -8.447111, -6.731391, -5.028546, -3.3388734,
+                   -1.6625524, 0., 1.648426, 3.2827258,
+                   4.9026012, 6.508112, 8.099079, 9.675562,
+                   11.23768, 12.785494, 14.319181, 15.838921,
+                   17.34501, 18.837511, 20.31696, 21.783352,
+                   23.23711, 24.67841, 26.10755, 27.52465,
+                   28.92989, 30.323565, 31.705738, 33.076584,
+                   34.436165, 35.784603, 37.121952, 38.448273,
+                   39.76363, 41.068077, 42.361618, 43.64431])
+
+    q = BoutArray([1.65182085e-05, 1.35209137e-05, 1.35209137e-05, 1.65182085e-05,
+                   2.27037561e-05, 3.29299036e-05, 4.75111660e-05, 6.60582256e-05,
+                   9.37651236e-05, 1.33889566e-04, 1.92315972e-04, 2.77720388e-04,
+                   4.02801157e-04, 5.86084015e-04, 8.54342127e-04, 1.24662268e-03,
+                   1.82020695e-03, 2.65964844e-03, 3.88941465e-03, 5.69083765e-03,
+                   8.31951781e-03, 1.21071174e-02, 1.74353035e-02, 2.50544252e-02,
+                   3.61864442e-02, 5.27957207e-02, 7.80601478e-02, 1.17530582e-01,
+                   1.80962745e-01, 2.86309413e-01, 4.66792017e-01, 7.80775187e-01,
+                   1.30828433e+00, 1.96015507e+00, 1.93110608e+00, 1.68087375e+00,
+                   1.43046853e+00, 1.22325976e+00, 1.05978494e+00, 9.32189283e-01,
+                   8.33973790e-01, 7.57209533e-01, 6.95491924e-01, 6.43991803e-01,
+                   5.99133592e-01, 5.58512003e-01, 5.20618811e-01, 4.84938514e-01,
+                   4.51486103e-01, 4.20480660e-01, 3.92125286e-01, 3.66543353e-01,
+                   3.43831424e-01, 3.23985859e-01, 3.06967540e-01, 2.92689895e-01,
+                   2.80988723e-01, 2.71660289e-01, 2.64462261e-01, 2.59194711e-01,
+                   2.55764583e-01, 2.54243239e-01, 2.54243239e-01, 2.55765543e-01])
+
+    x = BoutArray([3.2827258,  4.9026012,  6.508112,  8.099079,  9.675562,
+                   11.23768, 12.785494, 14.319181, 15.838921, 17.34501,
+                   18.837511, 20.31696, 21.783352, 23.23711, 24.67841,
+                   26.10755, 27.52465, 28.92989, 30.323565, 31.705738,
+                   33.076584, 34.436165, 35.784603, 37.121952, 38.448273])
+
+    y = BoutArray([1.68087375, 1.43046853, 1.22325976, 1.05978494, 0.93218928,
+                   0.83397379, 0.75720953, 0.69549192, 0.6439918, 0.59913359,
+                   0.558512, 0.52061881, 0.48493851, 0.4514861, 0.42048066,
+                   0.39212529, 0.36654335, 0.34383142, 0.32398586, 0.30696754,
+                   0.2926899, 0.28098872, 0.27166029, 0.26446226, 0.25919471])
+
+    # s = s_orig.astype('float64')
+    # q = q_orig.astype('float64')
+
+    # s = s.astype('float64')
+
+    # plt.plot(s, q, 'ro', markersize=4)
+    # # s = s_orig
+    # # q = q_orig
+    # i = 34
+    # j = -1
+    # x = s[i:]
+    # y = q[i:]
+    # plt.plot(x[0], y[0], 'bo', markersize=6)
+    # # plt.plot(x[-1], y[-1], 'bo', markersize=4)
+    # plt.axvline(0, linestyle='--', color='k')
+    # popt2, pcov2 = curve_fit(eich, x, y)
+    # plt.plot(x, eich(x, *popt2), 'b-', linewidth=2,
+    #          label='S = {:.4f}'.format(popt2[-1]))
+    # x = s[:i]
+    # y = q[:i]
+    # popt3, pcov3 = curve_fit(eich, x, y)
+    # plt.plot(x, eich(x, *popt3), 'r-', linewidth=2,
+    #          label='S = {:.4f}'.format(popt3[-1]))
+
+    # # Svals = [0, 0.5, 1, 2, 4, 10]
+    # # colors = getDistinctColors(len(Svals))
+    # # for i, j in enumerate(Svals):
+    # #     plt.plot(s, eich(s, 0.23741361, 1.97848096, 2.89837075, j),
+    # #              color=colors[i], label=f'S = {j}')
+
+    # plt.xlabel(r'$s-s_{0}$ [mm]')
+    # plt.ylabel(r'$q_{\parallel}$ [MWm$^{-2}$]')
+    # plt.axhspan(q[0], q[-1], color='green', alpha=0.3)
+    # print('popt2 is:', popt2)
+    # print('popt3 is:', popt3)
+    # # plt.legend(bbox_to_anchor=[0.5, 1],
+    # #            bbox_transform=plt.gcf().transFigure)
+    # plt.legend()
+    # plt.show()
+
