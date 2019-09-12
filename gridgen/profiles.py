@@ -165,6 +165,7 @@ if __name__ == "__main__":
     # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
+    densities = [2.5, 3.0, 3.5, 4.0]
 
     pedBase = 0.2
     offsets = []
