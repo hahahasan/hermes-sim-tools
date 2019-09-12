@@ -342,7 +342,7 @@ if __name__ == "__main__":
     gridFile = 'tcv_63127_64x64_profiles_1.2e19.nc'
 
     pathOut = '/users/hm1234/scratch/newTCV'
-    pathIn = 'scans'
+    pathIn = 'gridscan'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # dateDir = '_turbTest'
 
@@ -361,15 +361,16 @@ if __name__ == "__main__":
     # hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
 
-    # grids = ['tcv_63127_64x64_profiles_0.8e19.nc',
-    #          'tcv_63127_64x64_profiles_1.2e19.nc',
-    #          'tcv_63127_64x64_profiles_1.6e19.nc',
-    #          'tcv_63127_64x64_profiles_2.0e19.nc']
-    gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
+    title = 'grid'
+    grids = ['tcv_63127_64x64_profiles_2.5e19.nc',
+             'tcv_63127_64x64_profiles_3.0e19.nc',
+             'tcv_63127_64x64_profiles_3.5e19.nc',
+             'tcv_63127_64x64_profiles_4.0e19.nc']
+    # gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
     # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
     # gridSim.setup()
-    # # gridSim.modInp2('carbon_fraction', 0.04)
+    # gridSim.modInp2('carbon_fraction', 0.04)
     # gridSim.modInp2('frecycle', 0.95)
     # gridSim.modInp2('NOUT', 444)
     # gridSim.modInp2('TIMESTEP', 222)
@@ -400,6 +401,7 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/turb-test/g-18-07-19_133047'
     runDir = '/users/hm1234/scratch/newTCV/scans/cfrac-23-07-19_163139'
     runDir = '/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613'
 
     # addN = addNeutrals(runDir)
     # addN.copyInpFiles(addType='2-addN')
