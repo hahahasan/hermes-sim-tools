@@ -342,7 +342,7 @@ if __name__ == "__main__":
     gridFile = 'tcv_63127_64x64_profiles_1.2e19.nc'
 
     pathOut = '/users/hm1234/scratch/newTCV'
-    pathIn = 'gridscan'
+    pathIn = 'gridscan2'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # dateDir = '_turbTest'
 
@@ -362,10 +362,14 @@ if __name__ == "__main__":
     hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
 
     title = 'grid'
-    grids = ['tcv_63127_64x64_profiles_2.5e19.nc',
-             'tcv_63127_64x64_profiles_3.0e19.nc',
-             'tcv_63127_64x64_profiles_3.5e19.nc',
-             'tcv_63127_64x64_profiles_4.0e19.nc']
+    grids = ['tcv_63161_64x64_profiles_1e19.nc',
+             'tcv_63161_64x64_profiles_2e19.nc',
+             'tcv_63161_64x64_profiles_3e19.nc',
+             'tcv_63161_64x64_profiles_3.25e19.nc',
+             'tcv_63161_64x64_profiles_3.5e19.nc',
+             'tcv_63161_64x64_profiles_3.75e19.nc',
+             'tcv_63161_64x64_profiles_4.5e19.nc',
+             'tcv_63161_64x64_profiles_5.5e19.nc']
     # gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
     # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
@@ -402,6 +406,8 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/scans/cfrac-23-07-19_163139'
     runDir = '/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
 
     # addN = addNeutrals(runDir)
     # addN.copyInpFiles(addType='2-addN')
@@ -425,7 +431,7 @@ if __name__ == "__main__":
     # addC.modJob(tme)
     # addC.subJob()
 
-    tme = '1-11:11:11'
+    tme = '1-23:59:59'
     old = '2-addN'
     new = '3-addC'
     addC = addCurrents(runDir)
@@ -433,6 +439,7 @@ if __name__ == "__main__":
     addC.copyRestartFiles(old, new)
     addC.modFile('j_par', 'true')
     addC.modFile('j_diamag', 'true')
+    addC.modFile('NOUT', 600)
     addC.modFile('TIMESTEP', 333)
     addC.modJob(tme)
     addC.subJob()
