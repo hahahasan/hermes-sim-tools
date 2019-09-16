@@ -161,11 +161,13 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    baseGrid = 'tcv_63127_mod.nc'
+    baseGrid = 'tcv2_63161_64x64.nc'
     # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
     densities = [2.5, 3.0, 3.5, 4.0]
+    densities = [3.25, 3.75, 4.6, 5.2]
+    densities = [1, 2, 3, 3.25, 3.5, 3.75, 4.5, 5.5]
 
     pedBase = 0.2
     offsets = []
@@ -175,7 +177,7 @@ if __name__ == "__main__":
         offset = 0.02*d
         offsets.append(offset)
         pedestals.append((0.2*d)-offset)
-        gridFiles.append('tcv_63127_64x64_profiles_{}e19.nc'.format(d))
+        gridFiles.append('tcv2_63161_64x64_profiles_{}e19.nc'.format(d))
 
     # offsets = [0.02*1.2]
     # pedestals = [(0.2*1.2)-offsets[0]]
