@@ -290,7 +290,7 @@ class analyse:
         # return newQuant, newTitles, newTme
 
         showdata(newQuant, titles=newTitles, t_array=newTme,
-                 movie=movie, fps=fps, dpi=dpi, cmap='ocean')
+                 movie=movie, fps=fps, dpi=dpi, cmap='plasma')
 
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
@@ -803,6 +803,29 @@ class analyse:
 
         return nu, nvi, pk_idx
 
+    def plotPeakTargetTe(self, simType='3-addC'):
+        tmp_te = self.scanCollect(quant='Telim', simType=simType)
+
+        if self.title == 'grid':
+            nu = []
+            for i in range(len(self.scanParams)):
+                nu.append(eval(self.scanParams[i].split('e')[1][2:]))
+        else:
+            nu = self.scanParams
+        te = []
+        pk_idx = []
+        for i in range(len(tmp_te)):
+            te.append(100 * tmp_te[i][-1, :, -1])
+            pk_idx.append(np.where(te[-1] == np.amax(te[-1]))[0][0])
+
+        for i in range(len(te)):
+            plt.scatter(nu[i], te[i][pk_idx[i]], s=50)
+        plt.ylabel(r'Peak target $T_{e}$ [eV]')
+        plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
+        plt.show()
+
+        return nu, te, pk_idx
+
     def calcPsol(self, simIndex=0, simType='3-addC'):
         spe = self.scanCollect('Spe', simType)[simIndex][-1, :, :]
         spi = self.scanCollect('Spi', simType)[simIndex][-1, :, :]
@@ -904,13 +927,14 @@ if __name__ == "__main__":
                        'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234/')
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
     d = newDScan
     d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
     c = newCScan
     r = newRScan
 
