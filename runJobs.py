@@ -299,7 +299,7 @@ class addSim:
 
 class addNeutrals(addSim):
     def addVar(self, Nn=0.1, Pn=0.05):
-        for i in range(self.scanNum):
+        for i in self.scanIDs:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             addvar('Nn', Nn)
             addvar('Pn', Pn)
@@ -343,6 +343,7 @@ if __name__ == "__main__":
 
     pathOut = '/users/hm1234/scratch/newTCV'
     pathIn = 'gridscan2'
+    pathIn = 'high_recycle'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # dateDir = '_turbTest'
 
@@ -360,22 +361,36 @@ if __name__ == "__main__":
     # hermesVer = '/mnt/lustre/groups/phys-bout-2019/hermes-2-next/hermes-2'
     # hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
+    hermesVer = '/users/hm1234/scratch/BOUT18Sep19/hermes-2/hermes-2'
 
     title = 'grid'
-    grids = ['tcv_63161_64x64_profiles_1e19.nc',
-             'tcv_63161_64x64_profiles_2e19.nc',
-             'tcv_63161_64x64_profiles_3e19.nc',
-             'tcv_63161_64x64_profiles_3.25e19.nc',
-             'tcv_63161_64x64_profiles_3.5e19.nc',
-             'tcv_63161_64x64_profiles_3.75e19.nc',
-             'tcv_63161_64x64_profiles_4.5e19.nc',
-             'tcv_63161_64x64_profiles_5.5e19.nc']
+    grids = ['tcv_63127_64x64_profiles_1.6e19.nc',
+             'tcv_63127_64x64_profiles_2.0e19.nc',
+             'tcv_63127_64x64_profiles_2.5e19.nc',
+             'tcv_63127_64x64_profiles_3.0e19.nc',
+             'tcv_63127_64x64_profiles_3.25e19.nc',
+             'tcv_63127_64x64_profiles_3.5e19.nc',
+             'tcv_63127_64x64_profiles_4.0e19.nc',
+             'tcv_63127_64x64_profiles_5.2e19.nc']
+    # grids = ['tcv_63161_64x64_profiles_1e19.nc',
+    #          'tcv_63161_64x64_profiles_2e19.nc',
+    #          'tcv_63161_64x64_profiles_3e19.nc',
+    #          'tcv_63161_64x64_profiles_3.25e19.nc',
+    #          'tcv_63161_64x64_profiles_3.5e19.nc',
+    #          'tcv_63161_64x64_profiles_3.75e19.nc',
+    #          'tcv_63161_64x64_profiles_4.5e19.nc',
+    #          'tcv_63161_64x64_profiles_5.5e19.nc']
+    # grids = ['tcv_63161_64x64_profiles_6e19.nc',
+    #          'tcv_63161_64x64_profiles_6.5e19.nc',
+    #          'tcv_63161_64x64_profiles_7e19.nc',
+    #          'tcv_63161_64x64_profiles_7.5e19.nc',
+    #          'tcv_63161_64x64_profiles_8.2e19.nc']
     # gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
     # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
     # gridSim.setup()
-    # gridSim.modInp2('carbon_fraction', 0.04)
-    # gridSim.modInp2('frecycle', 0.95)
+    # gridSim.modInp2('carbon_fraction', 0.06)
+    # gridSim.modInp2('frecycle', 0.99)
     # gridSim.modInp2('NOUT', 444)
     # gridSim.modInp2('TIMESTEP', 222)
     # gridSim.modJob(nProcs, hermesVer, tme)
@@ -394,7 +409,6 @@ if __name__ == "__main__":
     # sim1.modJob(nProcs, hermesVer, tme)
     # sim1.subJob(shortQ=True)
 
-    tme = '23:59:59'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/NeScan-03-06-19_171145'
     # runDir = '/users/hm1234/scratch/TCV/NeScan2/frecycle-05-06-19_145457'
     # runDir = '/users/hm1234/scratch/TCV/longtime/cfrac-10-06-19_175728'
@@ -408,10 +422,30 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234'
     runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-18-09-19_111405'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426'
+    runDir = '/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128'
 
+    # tme = '23:59:59'
     # addN = addNeutrals(runDir)
-    # addN.copyInpFiles(addType='2-addN')
-    # addN.copyRestartFiles(addType='2-addN')
+    # addType = '2-addN'
+    # addN.copyInpFiles(addType=addType)
+    # addN.copyRestartFiles(addType=addType)
+    # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
+    # #                 inpName='BOUT-2Dworks.inp')
+    # addN.modFile('NOUT', 555)
+    # addN.modFile('TIMESTEP', 150)
+    # # addN.modFile('neutral_friction', 'true')
+    # addN.modFile('type', 'mixed', lineNum=214)
+    # addN.modJob(tme)
+    # addN.addVar(Nn=0.04, Pn=0.02)
+    # addN.subJob()
+
+    # tme = '23:59:59'
+    # addN = addNeutrals(runDir)
+    # addType = '2-addN2'
+    # addN.copyInpFiles(addType=addType)
+    # addN.copyRestartFiles(addType=addType)
     # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
     # #                 inpName='BOUT-2Dworks.inp')
     # addN.modFile('NOUT', 555)
@@ -423,6 +457,21 @@ if __name__ == "__main__":
     # addN.modJob(tme)
     # addN.addVar(Nn=0.04, Pn=0.02)
     # addN.subJob()
+
+    # tme = '1-23:59:59'
+    # old = '2-addN'
+    # new = '3-addC'
+    # addC = addCurrents(runDir)
+    # addC.copyInpFiles(old, new)
+    # addC.copyRestartFiles(old, new)
+    # addC.modFile('j_par', 'true')
+    # addC.modFile('j_diamag', 'true')
+    # addC.modFile('split_n0 ', 'false')
+    # addC.modFile('split_n0_psi', 'false')
+    # addC.modFile('NOUT', 500)  # 600
+    # addC.modFile('TIMESTEP', 500)  # 333
+    # addC.modJob(tme)
+    # addC.subJob()
 
     # addC = addCurrents(runDir)
     # addC.copyInpFiles(addType='2-addC')

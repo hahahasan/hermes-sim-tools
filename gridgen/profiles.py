@@ -161,13 +161,15 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    baseGrid = 'tcv_63127_64x64.nc'
+    baseGrid = 'tcv_63127_mod.nc'
     # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
     densities = [2.5, 3.0, 3.5, 4.0]
     densities = [3.25, 3.75, 4.6, 5.2]
     densities = [1, 2, 3, 3.25, 3.5, 3.75, 4.5, 5.5]
+    densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
+    densities = [6, 6.5, 7, 7.5, 8.2]
     densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
 
     pedBase = 0.2

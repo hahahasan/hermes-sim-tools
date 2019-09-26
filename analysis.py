@@ -376,7 +376,7 @@ class analyse:
                     a = eval('axs')
                 for i, q in enumerate(quants[qNum]):
                     # print(qNum, yNum)
-                    a.plot(q[tind, :, y],
+                    a.plot(q[tind, 2:-2, y],
                            color=colors[i],
                            label=self.scanParams[i])
                     a.axvline(ix1, color='k',
@@ -791,6 +791,8 @@ class analyse:
         nvi = []
         pk_idx = []
         for i in range(len(tmp_nvi)):
+            # nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, 2] +
+            #                                   tmp_nvi[i][-1, :, 3]))
             nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, -3] +
                                               tmp_nvi[i][-1, :, -2]))
             pk_idx.append(np.where(nvi[-1] == np.amax(nvi[-1]))[0][0])
@@ -910,7 +912,8 @@ if __name__ == "__main__":
     q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
              'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
              'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
-             'Tnorm', 'Cs0', 'Ne', 'Qi', 'S', 'F', 'Rp', 'Pn']
+             'Tnorm', 'Cs0', 'Ne', 'Qi', 'S', 'F', 'Rp', 'Pn',
+             'PeSource', 'PiSource', 'NeSource']
     # q_ids = ['Ne']
 
     # cScan = analyse('/users/hm1234/scratch/TCV/'
@@ -937,6 +940,8 @@ if __name__ == "__main__":
     # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
     c = newCScan
     r = newRScan
+    vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
+    vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
 
     q_par = d.calc_qPar(1, '3-addC')/1e6
     s = d.centreNormalZ(1, '3-addC')*1000
