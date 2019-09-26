@@ -913,28 +913,28 @@ if __name__ == "__main__":
              'Tnorm', 'Cs0', 'Ne', 'Qi', 'S', 'F', 'Rp', 'Pn']
     # q_ids = ['Ne']
 
-    cScan = analyse('/users/hm1234/scratch/TCV/'
-                    'longtime/cfrac-10-06-19_175728')
-    rScan = analyse('/users/hm1234/scratch/TCV/'
-                    'longtime/rfrac-19-06-19_102728')
-    dScan = analyse('/users/hm1234/scratch/TCV2/'
-                    'gridscan/grid-20-06-19_135947')
-    newDScan = analyse('/users/hm1234/scratch/newTCV/'
-                       'gridscan/grid-01-07-19_185351')
-    newCScan = analyse('/users/hm1234/scratch/newTCV/'
-                       'scans/cfrac-23-07-19_163139')
-    newRScan = analyse('/users/hm1234/scratch/newTCV/'
-                       'scans/rfrac-25-07-19_162302')
+    # cScan = analyse('/users/hm1234/scratch/TCV/'
+    #                 'longtime/cfrac-10-06-19_175728')
+    # rScan = analyse('/users/hm1234/scratch/TCV/'
+    #                 'longtime/rfrac-19-06-19_102728')
+    # dScan = analyse('/users/hm1234/scratch/TCV2/'
+    #                 'gridscan/grid-20-06-19_135947')
+    # newDScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'gridscan/grid-01-07-19_185351')
+    # newCScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'scans/cfrac-23-07-19_163139')
+    # newRScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234/')
-    # x.saveData(q_ids)
+    x = pickleData('/work/e281/e281/hm1234/test/scan/grid-17-09-19_164731')
+    x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
     d = newDScan
-    d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
-    d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
     c = newCScan
     r = newRScan
 
