@@ -106,6 +106,7 @@ def PickleData():  # [-1,:,-1,0]
             os.chdir('{}/{}'.format(data_dir, i))
     print('Pickled Data')
 
+
 def PickleData2():  # [-1,:,-1,0]
     i = '1e19'
     for j, q_id in enumerate(q_ids):
@@ -217,18 +218,20 @@ def NeConvPlot3(ix):
     in_mid = np.squeeze(collect('Ne', xind=ix, yind=iy, zind=0))
     iy = -1
     target_plate = np.squeeze(collect('Ne', xind=ix, yind=iy, zind=0))
-    
+
+    print('###########')
+
     tme2 = collect('t_array')/int(collect('Omega_ci'))*1e6
-    
+
     plt.plot(tme2, target_plate, label='target plate')
     plt.plot(tme2, out_mid, label='outboard midplane')
     plt.plot(tme2, in_mid, label='inboard midplane')
     plt.legend(loc='upper right')
-    
+
     plt.title('{}%'.format(vals[0]*100))
     plt.xlabel(r'Time ($\mu s$)')
     plt.ylabel(r'Ne')
-    
+
     plt.show()
 
 #        mid_sep = quant[:,ix2, int((j12+j22)/2), 0]
@@ -280,7 +283,7 @@ def ErrorPlotLastT():
         plt.show()
 
 
-def test_rads(new_dir, x, y): # x = ix2, y = j22 for divertor
+def test_rads(new_dir, x, y):  # x = ix2, y = j22 for divertor
     os.chdir(new_dir)
     a = []
     Rzrad = collect('Rzrad')
@@ -299,7 +302,7 @@ def test_rads(new_dir, x, y): # x = ix2, y = j22 for divertor
 
     return a
 
-    
+
 def rads(cfrac, ntype):
     os.chdir(pickle_dir)
     a = []
@@ -322,6 +325,7 @@ def rads(cfrac, ntype):
     # plt.show()
     os.chdir(current_dir)
     return a
+
 
 def rads2(cfrac, ntype):
     os.chdir(pickle_dir)
@@ -346,6 +350,7 @@ def rads2(cfrac, ntype):
     os.chdir(current_dir)
     return a
 
+
 def PlotRad(ntype):
     test = []
     tmeNtype = []
@@ -358,7 +363,7 @@ def PlotRad(ntype):
     plt.ylabel('Rtot')
     plt.legend()
     plt.show()
-    
+
 
 if __name__ == "__main__":
     pickle_dir = '/mnt/lustre/users/hm1234/analysis/21May19-results/2e19/2-add-neutrals'
@@ -366,16 +371,18 @@ if __name__ == "__main__":
     # data_dir = '/fs2/e281/e281/hm1234/test8/impurity-scan/noNeutral-27-03-19_103032'
     # data_dir = '/mnt/lustre/users/hm1234/TCV/test/cc-13-05-19_101417'
     data_dir = '/users/hm1234/scratch/TCV/grid-test/try1/2e19'
+    data_dir = '/work/e281/e281/hm1234/old/test10/currents/noNeutral-05-04-19_103500'
+    data_dir = '/home/hm1234/Documents/Project/remotefs/archer/old/test10/currents/noNeutral-05-04-19_103500/0.04/currents_on'
 
     # new_dir = '/mnt/lustre/users/hm1234/TCV/test/cc-13-05-19_101417/0.02'
-    
+
     # vals = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
-    vals = [0.02]
+    vals = [0.04]
 
     # load in some grid data
     #grid_dir = data_dir + '/' + str(vals[0])
-    grid_dir = data_dir
-    grid_file = 'tcv_52068_64x64_profiles_2e19.nc'
+    grid_dir = '/home/hm1234/Documents/Project/remotefs/archer/old/test10'
+    grid_file = 'sxd-48x136-profiles.grd.nc'
 
     os.chdir(grid_dir)
     current_dir = os.getcwd()
@@ -415,7 +422,7 @@ if __name__ == "__main__":
     # plt.show()
 
     # os.chdir(new_dir)
-    
+
     # quant = np.squeeze(collect('NVn'))*(int(collect('Nnorm'))*int(collect('Cs0')))
     # os.chdir('/work/e281/e281/hm1234/analysis/10Apr19-results/highres/nvn')
     # for i in [1,50,100,150,200,-1]:
