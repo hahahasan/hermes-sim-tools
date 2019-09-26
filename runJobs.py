@@ -418,6 +418,8 @@ if __name__ == "__main__":
     # addN.modFile('TIMESTEP', 150)
     # # addN.modFile('neutral_friction', 'true')
     # addN.modFile('type', 'mixed', lineNum=214)
+    # addN.modFile('split_n0 ', 'true')
+    # addN.modFile('split_n0_psi', 'true')
     # addN.modJob(tme)
     # addN.addVar(Nn=0.04, Pn=0.02)
     # addN.subJob()
@@ -432,13 +434,16 @@ if __name__ == "__main__":
     # addC.subJob()
 
     tme = '1-23:59:59'
-    old = '2-addN'
-    new = '3-addC'
-    addC = addCurrents(runDir)
+    old = '2-addN2'
+    new = '3-addC2'
+    addC = addCurrents(runDir, scanIDs=[5])
     addC.copyInpFiles(old, new)
     addC.copyRestartFiles(old, new)
     addC.modFile('j_par', 'true')
     addC.modFile('j_diamag', 'true')
+    addC.modFile('split_n0 ', 'false')
+    addC.modFile('split_n0_psi', 'false')
+    addC.modFile('psi_')
     addC.modFile('NOUT', 600)
     addC.modFile('TIMESTEP', 333)
     addC.modJob(tme)
