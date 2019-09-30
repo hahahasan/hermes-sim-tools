@@ -483,18 +483,18 @@ if __name__ == "__main__":
     # addC.subJob()
 
     tme = '1-23:59:59'
-    old = '2-addN2'
-    new = '3-addC2'
-    addC = addCurrents(runDir, scanIDs=[5])
+    old = '3-addC2'
+    new = '4-split'
+    addC = addCurrents(runDir)
     addC.copyInpFiles(old, new)
     addC.copyRestartFiles(old, new)
     addC.modFile('j_par', 'true')
     addC.modFile('j_diamag', 'true')
-    addC.modFile('split_n0 ', 'false')
-    addC.modFile('split_n0_psi', 'false')
-    addC.modFile('psi_')
-    addC.modFile('NOUT', 600)
-    addC.modFile('TIMESTEP', 333)
+    addC.modFile('split_n0 ', 'true')
+    addC.modFile('split_n0_psi', 'true')
+    # addC.modFile('psi_')
+    addC.modFile('NOUT', 555)
+    addC.modFile('TIMESTEP', 55)
     addC.modJob(tme)
     addC.subJob()
 
