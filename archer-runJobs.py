@@ -282,7 +282,7 @@ class addSim:
             replace_line('{}.pbs'.format(self.addType),
                          find_line('{}.pbs'.format(self.addType),
                                    'aprun'),
-                         'aprun -n {} {} -d {}/{}/{} restart 2>&1 {}/{}/{}/zzz'.format(
+                         'aprun -n {} {} -d {}/{}/{} restart -ksp_monitor'.format(
                              nProcs, hermesVer,
                              self.runDir, i, self.addType,
                              self.runDir, i, self.addType))
@@ -459,20 +459,34 @@ if __name__ == "__main__":
     # addN.addVar(Nn=0.04, Pn=0.02)
     # addN.subJob()
 
+    # tme = '23:59:59'
+    # old = '2-addN2'
+    # new = '3-addC2'
+    # addC = addCurrents(runDir, scanIDs=[0, 1, 2, 3, 4])
+    # addC.copyInpFiles(old, new)
+    # addC.copyRestartFiles(old, new)
+    # addC.modFile('j_par', 'true')
+    # addC.modFile('j_diamag', 'true')
+    # addC.modFile('split_n0 ', 'false')
+    # addC.modFile('split_n0_psi', 'false')
+    # addC.modFile('NOUT', 600)
+    # addC.modFile('TIMESTEP', 333)
+    # addC.modJob(tme)
+    # addC.subJob()
+
     tme = '23:59:59'
-    old = '2-addN2'
-    new = '3-addC2'
-    addC = addCurrents(runDir, scanIDs=[5])
-    addC.copyInpFiles(old, new)
-    addC.copyRestartFiles(old, new)
-    addC.modFile('j_par', 'true')
-    addC.modFile('j_diamag', 'true')
-    addC.modFile('split_n0 ', 'false')
-    addC.modFile('split_n0_psi', 'false')
-    addC.modFile('NOUT', 600)
-    addC.modFile('TIMESTEP', 333)
-    addC.modJob(tme)
-    addC.subJob()
+    old = '3-addC2'
+    new = '4-addP-ksp'
+    addP = addCurrents(runDir, scanIDs=[0])
+    addP.copyInpFiles(old, new)
+    addP.copyRestartFiles(old, new)
+    addP.modFile('split_n0 ', 'true')
+    addP.modFile('split_n0_psi', 'true')
+    addP.modFile('poloidal_flows', 'true')
+    addP.modFile('NOUT', 555)
+    addP.modFile('TIMESTEP', 1)
+    addP.modJob(tme)
+    addP.subJob()
 
     # tme = '23:55:55'
     # # addT = testTurbulence(runDir)
