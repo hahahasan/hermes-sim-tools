@@ -677,22 +677,35 @@ class analyse:
         # plt.close()
         # plt.cla()
 
-    def neConv(self, simIndex):
-        os.chdir('{}/{}'.format(self.outDir, simIndex))
-        tmp = next(os.walk('./'))[1]
-        tmp.sort()
-        ne_list = ['./']
-        for i in tmp:
-            ne_list.append(i)
+    def neConv(self, simIndex, subDir=[]):
+        try:
+            os.chdir('{}/{}'.format(self.dataDir, simIndex))
+            test = 'data'
+        except(FileNotFoundError):
+            os.chdir('{}/{}'.format(self.outDir, simIndex))
+            test = 'blah'
+        if len(subDir) == 0:
+            if test == 'blah':
+                subDirs = ['1-base']
+                tmp = next(os.walk('./'))[1]
+            elif test == 'data':
+                subDirs = []
+                tmp = next(os.walk('./'))[1]
+            tmp.sort()
+            for i in tmp:
+                subDirs.append(i)
+        else:
+            subDirs = subDir
 
         fig = plt.figure()
-        grid = plt.GridSpec(2, len(ne_list), wspace=0.4, hspace=0.3)
+        grid = plt.GridSpec(2, len(subDirs), wspace=0.4, hspace=0.3)
 
         ne = []
         tme = []
-        for i in ne_list:
-            ne.append(np.squeeze(collect('Ne', path=i)))
-            tme.append(collect('t_array', path=i))
+        for i in subDirs:
+            ne.append(self.collectData('Ne', simIndex=simIndex, simType=i))
+            tme.append(self.collectData('t_array', simIndex=simIndex,
+                                        simType=i)/(95777791/1e6))
 
         neAll = concatenate(ne)
         tmeAll = concatenate(tme)
@@ -700,12 +713,26 @@ class analyse:
         ix1 = self.ix1
         mid = int(0.5*(self.j12+self.j22))
 
-        for i in range(len(ne_list)):
+        for i in range(len(subDirs)):
             tmp = fig.add_subplot(grid[0, i])
             tmp.plot(tme[i], ne[i][:, ix1, mid])
+            tmp.set_title(subDirs[i])
 
         tmp = fig.add_subplot(grid[1, :])
-        tmp.plot(tmeAll, neAll[:, ix1, mid])
+        tmp.plot(tmeAll, neAll[:, ix1, mid], 'ro', markersize=1)
+
+        tme_cutoffs = []
+        for i in range(len(tme)):
+            tme_cutoffs.append(len(tme[i]))
+        tme_cutoffs = np.cumsum(tme_cutoffs)
+
+        for j in range(len(tme) - 1):
+            tmp.axvline(tmeAll[tme_cutoffs[j]], color='k',
+                        linestyle='--')
+
+        tmp.set_xlabel(r'Time ($\mu s$)')
+        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+
         plt.show()
 
     def neScanConv(self, subDir=[]):
@@ -928,20 +955,21 @@ if __name__ == "__main__":
                        'scans/cfrac-23-07-19_163139')
     newRScan = analyse('/users/hm1234/scratch/newTCV/'
                        'scans/rfrac-25-07-19_162302')
-    tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
+    # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    x = pickleData('/work/e281/e281/hm1234/test/scan/grid-17-09-19_164731')
-    x.saveData(q_ids)
+    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
     d = newDScan
-    # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
-    # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
     c = newCScan
     r = newRScan
     vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
     vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
 
     q_par = d.calc_qPar(1, '3-addC')/1e6
     s = d.centreNormalZ(1, '3-addC')*1000
