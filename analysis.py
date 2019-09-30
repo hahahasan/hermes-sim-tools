@@ -677,22 +677,35 @@ class analyse:
         # plt.close()
         # plt.cla()
 
-    def neConv(self, simIndex):
-        os.chdir('{}/{}'.format(self.outDir, simIndex))
-        tmp = next(os.walk('./'))[1]
-        tmp.sort()
-        ne_list = ['./']
-        for i in tmp:
-            ne_list.append(i)
+    def neConv(self, simIndex, subDir=[]):
+        try:
+            os.chdir('{}/{}'.format(self.dataDir, simIndex))
+            test = 'data'
+        except(FileNotFoundError):
+            os.chdir('{}/{}'.format(self.outDir, simIndex))
+            test = 'blah'
+        if len(subDir) == 0:
+            if test == 'blah':
+                subDirs = ['1-base']
+                tmp = next(os.walk('./'))[1]
+            elif test == 'data':
+                subDirs = []
+                tmp = next(os.walk('./'))[1]
+            tmp.sort()
+            for i in tmp:
+                subDirs.append(i)
+        else:
+            subDirs = subDir
 
         fig = plt.figure()
-        grid = plt.GridSpec(2, len(ne_list), wspace=0.4, hspace=0.3)
+        grid = plt.GridSpec(2, len(subDirs), wspace=0.4, hspace=0.3)
 
         ne = []
         tme = []
-        for i in ne_list:
-            ne.append(np.squeeze(collect('Ne', path=i)))
-            tme.append(collect('t_array', path=i))
+        for i in subDirs:
+            ne.append(self.collectData('Ne', simIndex=simIndex, simType=i))
+            tme.append(self.collectData('t_array', simIndex=simIndex,
+                                        simType=i)/(95777791/1e6))
 
         neAll = concatenate(ne)
         tmeAll = concatenate(tme)
@@ -700,12 +713,26 @@ class analyse:
         ix1 = self.ix1
         mid = int(0.5*(self.j12+self.j22))
 
-        for i in range(len(ne_list)):
+        for i in range(len(subDirs)):
             tmp = fig.add_subplot(grid[0, i])
             tmp.plot(tme[i], ne[i][:, ix1, mid])
+            tmp.set_title(subDirs[i])
 
         tmp = fig.add_subplot(grid[1, :])
-        tmp.plot(tmeAll, neAll[:, ix1, mid])
+        tmp.plot(tmeAll, neAll[:, ix1, mid], 'ro', markersize=1)
+
+        tme_cutoffs = []
+        for i in range(len(tme)):
+            tme_cutoffs.append(len(tme[i]))
+        tme_cutoffs = np.cumsum(tme_cutoffs)
+
+        for j in range(len(tme) - 1):
+            tmp.axvline(tmeAll[tme_cutoffs[j]], color='k',
+                        linestyle='--')
+
+        tmp.set_xlabel(r'Time ($\mu s$)')
+        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+
         plt.show()
 
     def neScanConv(self, subDir=[]):
