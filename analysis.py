@@ -228,16 +228,20 @@ class analyse:
                 quant2 = grid_dat[quant]
         return quant2
 
-    def scanCollect(self, quant, simType='3-addC'):
+    def scanCollect(self, quant, simType='3-addC', subDirs=[]):
         x = []
+        if len(subDirs) == 0:
+            subDirs = range(self.scanNum)
+        else:
+            subDirs = subDirs
         if quant == 't_array':
-            for i in range(self.scanNum):
+            for i in subDirs:
                 tempTime = (self.collectData('t_array', i, simType)/int(
                     self.collectData('Omega_ci', i, simType)))*1e6
                 # print(tempTime[int(len(tempTime)/2)])
                 x.append(tempTime)
         else:
-            for i in range(self.scanNum):
+            for i in subDirs:
                 x.append(self.collectData(quant, i, simType))
         return x
 
@@ -806,25 +810,30 @@ class analyse:
 
         plt.show()
 
-    def plotPeakTargetFlux(self, simType='3-addC'):
-        tmp_nvi = self.scanCollect(quant='NVi', simType=simType)
-
+    def plotPeakTargetFlux(self, subDirs=[], simType='3-addC'):
+        tmp_nvi = self.scanCollect(quant='NVi', simType=simType, subDirs=subDirs)
+        if len(subDirs) == 0:
+            subDirs = range(len(self.scanParams))
+        else:
+            subDirs = subDirs
         if self.title == 'grid':
             nu = []
-            for i in range(len(self.scanParams)):
+            for i in subDirs:
                 nu.append(eval(self.scanParams[i].split('e')[1][2:]))
         else:
-            nu = self.scanParams
+            nu = []
+            for i in subDirs:
+                nu.append(self.scanParams[i])
         nvi = []
         pk_idx = []
-        for i in range(len(tmp_nvi)):
+        for i in range(len(subDirs)):
             # nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, 2] +
             #                                   tmp_nvi[i][-1, :, 3]))
             nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, -3] +
                                               tmp_nvi[i][-1, :, -2]))
             pk_idx.append(np.where(nvi[-1] == np.amax(nvi[-1]))[0][0])
 
-        for i in range(len(nvi)):
+        for i in range(len(subDirs)):
             plt.scatter(nu[i], nvi[i][pk_idx[i]], s=50)
         plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
         plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
@@ -832,22 +841,27 @@ class analyse:
 
         return nu, nvi, pk_idx
 
-    def plotPeakTargetTe(self, simType='3-addC'):
-        tmp_te = self.scanCollect(quant='Telim', simType=simType)
-
+    def plotPeakTargetTe(self, subDirs=[], simType='3-addC'):
+        tmp_te = self.scanCollect(quant='Telim', simType=simType, subDirs=subDirs)
+        if len(subDirs) == 0:
+            subDirs = range(len(self.scanParams))
+        else:
+            subDirs = subDirs
         if self.title == 'grid':
             nu = []
-            for i in range(len(self.scanParams)):
+            for i in subDirs:
                 nu.append(eval(self.scanParams[i].split('e')[1][2:]))
         else:
-            nu = self.scanParams
+            nu = []
+            for i in subDirs:
+                nu.append(self.scanParams[i])
         te = []
         pk_idx = []
-        for i in range(len(tmp_te)):
+        for i in range(len(subDirs)):
             te.append(100 * tmp_te[i][-1, :, -1])
             pk_idx.append(np.where(te[-1] == np.amax(te[-1]))[0][0])
 
-        for i in range(len(te)):
+        for i in range(len(subDirs)):
             plt.scatter(nu[i], te[i][pk_idx[i]], s=50)
         plt.ylabel(r'Peak target $T_{e}$ [eV]')
         plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
