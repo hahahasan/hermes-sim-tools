@@ -237,7 +237,7 @@ class analyse:
         if quant == 't_array':
             for i in subDirs:
                 tempTime = (self.collectData('t_array', i, simType)/int(
-                    self.collectData('Omega_ci', i, simType)))*1e6
+                    self.collectData('Omega_ci', i, simType)))*1e3
                 # print(tempTime[int(len(tempTime)/2)])
                 x.append(tempTime)
         else:
@@ -734,12 +734,13 @@ class analyse:
             tmp.axvline(tmeAll[tme_cutoffs[j]], color='k',
                         linestyle='--')
 
-        tmp.set_xlabel(r'Time ($\mu s$)')
+        tmp.set_xlabel(r'Time ($m s$)')
         tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
 
         plt.show()
 
     def neScanConv(self, subDir=[], simIndex=[]):
+    def neScanConv(self, subDir=[], simIndex=[], split=False):
         if len(subDir) == 0:
             subDirs = ['1-base']
             os.chdir('{}/{}'.format(self.outDir, 0))
@@ -756,7 +757,10 @@ class analyse:
             simIndex = simIndex
 
         fig = plt.figure()
-        grid = plt.GridSpec(2, len(subDirs))
+        if split == True:
+            grid = plt.GridSpec(2, len(subDirs))
+        elif split == False:
+            grid = plt.GridSpec(1, len(subDirs))
         ix1 = self.ix1
         mid = self.outMid_idx
         # mid = -1
@@ -776,14 +780,15 @@ class analyse:
             for j in range(len(ne)):
                 nec.append(ne[j][i])
                 tmec.append(tme[j][i])
-            ne_all.append(concatenate(nec))
-            tme_all.append(concatenate(tmec))
+            ne_all.append(10*concatenate(nec))
+            tme_all.append(10*concatenate(tmec))
 
-        for i in range(len(ne)):
-            tmp = fig.add_subplot(grid[0, i])
-            for j in range(len(ne[0])):
-                tmp.plot(tme[i][j], ne[i][j][:, ix1, mid])
-            tmp.set_title(subDirs[i])
+        if split == True:
+            for i in range(len(ne)):
+                tmp = fig.add_subplot(grid[0, i])
+                for j in range(len(ne[0])):
+                    tmp.plot(tme[i][j], ne[i][j][:, ix1, mid])
+                tmp.set_title(subDirs[i])
 
         avg_tme_cutoffs = []
         for i in range(len(tme)-1):
@@ -793,7 +798,11 @@ class analyse:
             avg_tme_cutoffs.append(int(a/len(tme[0])))
         avg_tme_cutoffs = np.cumsum(avg_tme_cutoffs)
 
-        tmp = fig.add_subplot(grid[1, :])
+        if split == True:
+            tmp = fig.add_subplot(grid[1, :])
+        elif split == False:
+            tmp = fig.add_subplot(grid[0, :])
+        
         for j in range(len(ne[0])):
             tmp.plot(tme_all[j], ne_all[j][:, ix1, mid],
                      label=self.scanParams[j])
@@ -801,7 +810,7 @@ class analyse:
         for i in range(len(tme)-1):
             tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
                         linestyle='--')
-        tmp.set_xlabel(r'Time ($\mu s$)')
+        tmp.set_xlabel(r'Time ($m s$)')
         tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
 
         fig
@@ -815,6 +824,53 @@ class analyse:
 
         plt.show()
 
+    def plotTargetFlux(self, fType='peak', subDirs=[], simType='3-addC'):
+        tmp_nvi = self.scanCollect(quant='NVi', simType=simType, subDirs=subDirs)
+        dx = self.scanCollect(quant='dx', simType=simType, subDirs=subDirs)
+        dy = self.scanCollect(quant='dy', simType=simType, subDirs=subDirs)
+        J = self.scanCollect(quant='J', simType=simType, subDirs=subDirs)
+        if len(subDirs) == 0:
+            subDirs = range(len(self.scanParams))
+        else:
+            subDirs = subDirs
+        if self.title == 'grid':
+            nu = []
+            for i in subDirs:
+                nu.append(eval(self.scanParams[i].split('e')[1][2:]))
+        else:
+            nu = []
+            for i in subDirs:
+                nu.append(self.scanParams[i])
+        nvi = []
+        pk_idx = []
+        for i in range(len(subDirs)):
+            # nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, 2] +
+            #                                   tmp_nvi[i][-1, :, 3]))
+            nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, -3] +
+                                              tmp_nvi[i][-1, :, -2]))
+            pk_idx.append(np.where(nvi[-1] == np.amax(nvi[-1]))[0][0])
+
+        if fType == 'peak':
+            for i in range(len(subDirs)):
+                plt.scatter(nu[i], nvi[i][pk_idx[i]], s=50)
+                plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
+        elif fType == 'integrated':
+            nvi_int = []
+            for i in range(len(subDirs)):
+                a = 0
+                for j in range(nvi[i].shape[1]):
+                    a += tmp_nvi[i][-1, j, -2]*J[i][j, -2]*dx[i][j, -2]*dy[i][j, -2]
+                nvi_int.append(a * 1e20 * 95777791)
+            plt.scatter(nu[i], nvi_int[i], s=50)
+            plt.ylabel(r'Integrated target flux [m$^{-2}$s$^{-1}$]')
+        else:
+            print('please select either "integrated" or "peak"')
+        plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
+        plt.show()
+
+        return nu, nvi, pk_idx
+
+        
     def plotPeakTargetFlux(self, subDirs=[], simType='3-addC'):
         tmp_nvi = self.scanCollect(quant='NVi', simType=simType, subDirs=subDirs)
         if len(subDirs) == 0:
@@ -978,6 +1034,8 @@ if __name__ == "__main__":
 
     x = pickleData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
     x.saveData(q_ids)
+    # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234/')
+    # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 

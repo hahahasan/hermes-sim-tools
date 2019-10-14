@@ -425,9 +425,9 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234'
-    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
-    runDir = '/fs2/e281/e281/hm1234/test/scan/grid-17-09-19_164731'
-    runDir = '/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
+    # runDir = '/fs2/e281/e281/hm1234/test/scan/grid-17-09-19_164731'
+    # runDir = '/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435'
 
     # addN = addNeutrals(runDir)
     # addN.copyInpFiles(addType='2-addN')
@@ -465,6 +465,12 @@ if __name__ == "__main__":
     # addC = addCurrents(runDir, scanIDs=[0, 1, 2, 3, 4])
     # addC.copyInpFiles(old, new)
     # addC.copyRestartFiles(old, new)
+    tme = '1-23:59:59'
+    old = '3-addC2'
+    new = '3-resC3'
+    addC = addCurrents(runDir)
+    addC.copyInpFiles(old, new)
+    addC.copyRestartFiles(old, new)
     # addC.modFile('j_par', 'true')
     # addC.modFile('j_diamag', 'true')
     # addC.modFile('split_n0 ', 'false')
@@ -503,6 +509,25 @@ if __name__ == "__main__":
     # addP.modFile('TIMESTEP', 1)
     # addP.modJob(tme)
     # addP.subJob()
+    addC.modFile('NOUT', 600)
+    addC.modFile('TIMESTEP', 333)
+    addC.modJob(tme)
+    addC.subJob()
+
+    # tme = '23:59:59'
+    # old = '2-addN2'
+    # new = '3-addC2'
+    # addC = addCurrents(runDir, scanIDs=[5])
+    # addC.copyInpFiles(old, new)
+    # addC.copyRestartFiles(old, new)
+    # addC.modFile('j_par', 'true')
+    # addC.modFile('j_diamag', 'true')
+    # addC.modFile('split_n0 ', 'false')
+    # addC.modFile('split_n0_psi', 'false')
+    # addC.modFile('NOUT', 600)
+    # addC.modFile('TIMESTEP', 333)
+    # addC.modJob(tme)
+    # addC.subJob()
 
     # tme = '23:55:55'
     # # addT = testTurbulence(runDir)
