@@ -282,7 +282,7 @@ class addSim:
             replace_line('{}.pbs'.format(self.addType),
                          find_line('{}.pbs'.format(self.addType),
                                    'aprun'),
-                         'aprun -n {} {} -d {}/{}/{} restart -ksp_monitor'.format(
+                         'aprun -n {} {} -d {}/{}/{} restart 2>&1 > {}/{}/{}/zzz'.format(
                              nProcs, hermesVer,
                              self.runDir, i, self.addType,
                              self.runDir, i, self.addType))
@@ -475,18 +475,34 @@ if __name__ == "__main__":
     # addC.subJob()
 
     tme = '23:59:59'
-    old = '3-addC2'
-    new = '4-addP-ksp'
-    addP = addCurrents(runDir, scanIDs=[0])
-    addP.copyInpFiles(old, new)
-    addP.copyRestartFiles(old, new)
-    addP.modFile('split_n0 ', 'true')
-    addP.modFile('split_n0_psi', 'true')
-    addP.modFile('poloidal_flows', 'true')
-    addP.modFile('NOUT', 555)
-    addP.modFile('TIMESTEP', 1)
-    addP.modJob(tme)
-    addP.subJob()
+    old = '3-resC4'
+    new = '3-resC5'
+    resC = addCurrents(runDir)
+    resC.copyInpFiles(old, new)
+    resC.copyRestartFiles(old, new)
+    resC.modFile('NOUT', 666)
+    resC.modFile('TIMESTEP', 444)
+    # addP.modFile('split_n0 ', 'true')
+    # addP.modFile('split_n0_psi', 'true')
+    # addP.modFile('poloidal_flows', 'true')
+    # addP.modFile('NOUT', 555)
+    # addP.modFile('TIMESTEP', 1)
+    resC.modJob(tme)
+    resC.subJob()
+
+    # tme = '23:59:59'
+    # old = '3-addC2'
+    # new = '4-addP-ksp'
+    # addP = addCurrents(runDir, scanIDs=[0])
+    # addP.copyInpFiles(old, new)
+    # addP.copyRestartFiles(old, new)
+    # addP.modFile('split_n0 ', 'true')
+    # addP.modFile('split_n0_psi', 'true')
+    # addP.modFile('poloidal_flows', 'true')
+    # addP.modFile('NOUT', 555)
+    # addP.modFile('TIMESTEP', 1)
+    # addP.modJob(tme)
+    # addP.subJob()
 
     # tme = '23:55:55'
     # # addT = testTurbulence(runDir)
