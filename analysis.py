@@ -739,7 +739,7 @@ class analyse:
 
         plt.show()
 
-    def neScanConv(self, subDir=[]):
+    def neScanConv(self, subDir=[], simIndex=[]):
         if len(subDir) == 0:
             subDirs = ['1-base']
             os.chdir('{}/{}'.format(self.outDir, 0))
@@ -749,6 +749,11 @@ class analyse:
                 subDirs.append(i)
         else:
             subDirs = subDir
+
+        if len(simIndex) == 0:
+            simIndex = list(range(self.scanNum))
+        else:
+            simIndex = simIndex
 
         fig = plt.figure()
         grid = plt.GridSpec(2, len(subDirs))
@@ -760,8 +765,8 @@ class analyse:
         ne = []
         tme = []
         for i in subDirs:
-            ne.append(self.scanCollect('Ne', i))
-            tme.append(self.scanCollect('t_array', i))
+            ne.append(self.scanCollect('Ne', i, simIndex))
+            tme.append(self.scanCollect('t_array', i, simIndex))
 
         ne_all = []
         tme_all = []
@@ -983,6 +988,8 @@ if __name__ == "__main__":
     # r = newRScan
     # vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
     # vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+
+    hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
     # q_par = d.calc_qPar(1, '3-addC')/1e6
     # s = d.centreNormalZ(1, '3-addC')*1000
