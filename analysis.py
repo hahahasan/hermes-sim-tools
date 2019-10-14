@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+##!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Feb 14 15:16:33 2019
@@ -739,7 +739,6 @@ class analyse:
 
         plt.show()
 
-    def neScanConv(self, subDir=[], simIndex=[]):
     def neScanConv(self, subDir=[], simIndex=[], split=False):
         if len(subDir) == 0:
             subDirs = ['1-base']
