@@ -421,10 +421,10 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/scans/rfrac-25-07-19_162302'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613'
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234'
-    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
-    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-18-09-19_111405'
-    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426'
-    runDir = '/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-18-09-19_111405'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426'
+    # runDir = '/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128'
 
     # tme = '23:59:59'
     # addN = addNeutrals(runDir)
@@ -482,21 +482,47 @@ if __name__ == "__main__":
     # addC.modJob(tme)
     # addC.subJob()
 
-    tme = '1-23:59:59'
-    old = '3-addC2'
-    new = '4-split'
-    addC = addCurrents(runDir)
-    addC.copyInpFiles(old, new)
-    addC.copyRestartFiles(old, new)
-    addC.modFile('j_par', 'true')
-    addC.modFile('j_diamag', 'true')
-    addC.modFile('split_n0 ', 'true')
-    addC.modFile('split_n0_psi', 'true')
-    # addC.modFile('psi_')
-    addC.modFile('NOUT', 555)
-    addC.modFile('TIMESTEP', 55)
-    addC.modJob(tme)
-    addC.subJob()
+    # tme = '1-23:59:59'
+    # old = '3-addC'
+    # new = '3-resC'
+    # resC = addCurrents(runDir)
+    # resC.copyInpFiles(old, new)
+    # resC.copyRestartFiles(old, new)
+    # # addC.modFile('psi_')
+    # resC.modFile('NOUT', 666)
+    # resC.modFile('TIMESTEP', 444)
+    # resC.modJob(tme)
+    # resC.subJob()
+
+    # tme = '1-23:59:59'
+    # old = '3-resC3'
+    # new = '4-addD'
+    # addD = addCurrents(runDir)
+    # addD.copyInpFiles(old, new)
+    # addD.copyRestartFiles(old, new)
+    # # addC.modFile('psi_')
+    # addD.modFile('NOUT', 666)
+    # addD.modFile('TIMESTEP', 444)
+    # addD.modFile('pctype', 'hypre')
+    # addD.modFile('neutral_gamma', 0.3, lineNum=218)
+    # addD.modJob(tme)
+    # addD.subJob()
+
+    # tme = '1-23:59:59'
+    # old = '3-addC2'
+    # new = '4-split'
+    # addC = addCurrents(runDir)
+    # addC.copyInpFiles(old, new)
+    # addC.copyRestartFiles(old, new)
+    # addC.modFile('j_par', 'true')
+    # addC.modFile('j_diamag', 'true')
+    # addC.modFile('split_n0 ', 'true')
+    # addC.modFile('split_n0_psi', 'true')
+    # # addC.modFile('psi_')
+    # addC.modFile('NOUT', 555)
+    # addC.modFile('TIMESTEP', 55)
+    # addC.modJob(tme)
+    # addC.subJob()
 
     # tme = '23:55:55'
     # # addT = testTurbulence(runDir)
