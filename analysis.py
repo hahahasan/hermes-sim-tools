@@ -1017,36 +1017,37 @@ if __name__ == "__main__":
              'PeSource', 'PiSource', 'NeSource']
     # q_ids = ['Ne']
 
-    # cScan = analyse('/users/hm1234/scratch/TCV/'
-    #                 'longtime/cfrac-10-06-19_175728')
-    # rScan = analyse('/users/hm1234/scratch/TCV/'
-    #                 'longtime/rfrac-19-06-19_102728')
-    # dScan = analyse('/users/hm1234/scratch/TCV2/'
-    #                 'gridscan/grid-20-06-19_135947')
-    # newDScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'gridscan/grid-01-07-19_185351')
-    # newCScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'scans/cfrac-23-07-19_163139')
-    # newRScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'scans/rfrac-25-07-19_162302')
-    # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
+    cScan = analyse('/users/hm1234/scratch/TCV/'
+                    'longtime/cfrac-10-06-19_175728')
+    rScan = analyse('/users/hm1234/scratch/TCV/'
+                    'longtime/rfrac-19-06-19_102728')
+    dScan = analyse('/users/hm1234/scratch/TCV2/'
+                    'gridscan/grid-20-06-19_135947')
+    newDScan = analyse('/users/hm1234/scratch/newTCV/'
+                       'gridscan/grid-01-07-19_185351')
+    newCScan = analyse('/users/hm1234/scratch/newTCV/'
+                       'scans/cfrac-23-07-19_163139')
+    newRScan = analyse('/users/hm1234/scratch/newTCV/'
+                       'scans/rfrac-25-07-19_162302')
+    tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    x = pickleData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
-    x.saveData(q_ids)
+    # x = pickleData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
+    # x.saveData(q_ids)
     # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234/')
     # x.saveData(q_ids)
 
     qlabels = ['Telim', 'Ne']
 
-    # d = newDScan
-    # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
-    # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
-    # c = newCScan
-    # r = newRScan
-    # vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
-    # vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    d = newDScan
+    d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    c = newCScan
+    r = newRScan
+    vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
+    vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
 
-    hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
+    # hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
     # q_par = d.calc_qPar(1, '3-addC')/1e6
     # s = d.centreNormalZ(1, '3-addC')*1000
