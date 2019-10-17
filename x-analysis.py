@@ -19,13 +19,15 @@ import matplotlib.pyplot as plt
 import matplotlib.style as style
 from matplotlib.ticker import FormatStrFormatter
 
+from xbout import open_boutdataset
+from boutdata.squashoutput import squashoutput
+
 from boutdata.collect import collect
 from boututils.datafile import DataFile
 from boututils.showdata import showdata
 from boutdata.griddata import gridcontourf
 from boututils.plotdata import plotdata
 from boututils.boutarray import BoutArray
-import pickle
 import colorsys
 from inspect import getsource as GS
 
@@ -96,29 +98,22 @@ def read_line(filename, lookup):
     return tmp
 
 
-class pickleData:
+class squashData:
     def __init__(self, dataDir, logFile='log.txt', dataDirName='data'):
         self.dataDir = dataDir
-        self.dataDirName = dataDirName
         os.chdir(dataDir)
         self.gridFile = read_line(logFile, 'gridFile')
         self.scanParams = read_line(logFile, 'scanParams')
         self.scanNum = len(self.scanParams)
-        if os.path.isdir(dataDirName) is not True:
-            os.mkdir(dataDirName)
-        self.pickleDir = '{}/{}'.format(dataDir, dataDirName)
         self.subDirs = []
         for i in range(self.scanNum):
             # print('{}/{}'.format(dataDir, i))
             a = next(os.walk('{}/{}'.format(dataDir, i)))[1]
             a.sort()
+            a.insert(0, '')
             self.subDirs.append(a)
-        for i in range(self.scanNum):
-            os.system('mkdir -p {}/{}/{}'.format(self.pickleDir, i, '1-base'))
-            for j in self.subDirs[i]:
-                os.system('mkdir -p {}/{}/{}'.format(self.pickleDir, i, j))
 
-    def saveData(self, quant, subDir=[]):
+    def saveData(self, subDir=[]):
         '''
         quant, subDirs: will always assume populated base directory
         '''
@@ -129,40 +124,27 @@ class pickleData:
             for i in range(self.scanNum):
                 subDirs.append(subDir)
         for i in range(self.scanNum):
-            print('################# collecting for scanParam {}'.format(
+            print('################# squashing scanParam {}'.format(
                 self.scanParams[i]))
-            for j in range(-1, len(subDirs[i])):
-                if j == -1:
-                    title = '1-base'
-                else:
-                    title = subDirs[i][j]
+            for j in range(0, len(subDirs[i])):
+                title = subDirs[i][j]
                 print('############## collecting for {}'.format(title))
-                for q_id in quant:
-                    os.chdir('{}/{}/{}'.format(self.pickleDir, i, title))
-                    if os.path.isfile(q_id) is True:
-                        print('already pickled {}'.format(q_id))
-                        continue
-                    if j == -1:
-                        os.chdir('{}/{}'.format(self.dataDir, i))
-                    else:
-                        os.chdir('{}/{}/{}'.format(self.dataDir, i, title))
-                    try:
-                        quant2 = collect(q_id)
-                    except(ValueError, KeyError, OSError):
-                        print('could not collect {}'.format(q_id))
-                        continue
-                    os.chdir('{}/{}/{}'.format(self.pickleDir, i, title))
-                    pickle_on = open('{}'.format(q_id), 'wb')
-                    pickle.dump(quant2, pickle_on)
-                    pickle_on.close()
-                    print('pickled {}'.format(q_id))
+                os.chdir('{}/{}/{}'.format(self.dataDir, i, title))
+                if os.path.isfile('BOUT.dmp.nc') is True:
+                    print('already squashed data'.format())
+                    continue
+                try:
+                    squashoutput(quiet=True)
+                except(OSError):
+                    print('could not squash {}-{}'.format(i, title))
+                    continue
+                print('squashed {}'.format(title))
 
 
 class analyse:
-    def __init__(self, outDir, dataDir='data', analysisDir='analysis',
+    def __init__(self, outDir,  analysisDir='analysis',
                  logFile='log.txt'):
         self.outDir = outDir
-        self.dataDir = '{}/{}'.format(outDir, dataDir)
         self.analysisDir = '{}/{}'.format(outDir, analysisDir)
         self.scanParams = read_line('{}/{}'.format(outDir, logFile),
                                     'scanParams')
@@ -173,11 +155,8 @@ class analyse:
             os.mkdir(self.analysisDir)
         self.gridData()
 
-    def listKeys(self, simIndex=0, simType='1-base'):
-        if simType == '1-base':
-            os.chdir('{}/{}'.format(self.outDir, simIndex))
-        else:
-            os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
+    def listKeys(self, simIndex=0, simType=''):
+        os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
         datFile = DataFile('BOUT.dmp.0.nc')
         self.datFile = datFile
         return datFile.keys()
@@ -205,28 +184,23 @@ class analyse:
         R2 = self.R[:, self.j12:self.j22]
         self.outMid_idx = self.j12 + np.where(R2 == np.amax(R2))[1][0]
 
-    def unPickle(self, quant, simIndex=0, simType='1-base'):
-        os.chdir('{}/{}/{}'.format(self.dataDir, simIndex, simType))
-        return pickle.load(open('{}'.format(quant), 'rb'))
-
-    def collectData(self, quant, simIndex=0, simType='1-base'):
+    def collectData(self, quant, simIndex=0, simType=''):
+        os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
+        if os.path.isfile('BOUT.dmp.nc') is False:
+            print('{}-{} not squashed. squashing now'.format(simIndex, simType))
+            squashoutput(quiet=True)
+        gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
+        print(gridFile)
+        ds = open_boutdataset(
+            'BOUT.dmp.nc',
+            gridfilepath=gridFile,
+            coordinates={'x': 'psi_pol', 'y': 'theta', 'z': 'zeta'},
+            geometry='toroidal')
         try:
-            quant2 = np.squeeze(self.unPickle(quant, simIndex, simType))
-        except(FileNotFoundError):
-            print('{} has not been pickled'.format(quant))
-            if simType == '1-base':
-                os.chdir('{}/{}'.format(self.outDir, simIndex))
-            else:
-                os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-            try:
-                quant2 = np.squeeze(collect(quant))
-            except(ValueError):
-                print('quant in gridFile')
-                self.gridFile = fnmatch.filter(next(os.walk('./'))[2],
-                                               '*profile*')[0]
-                grid_dat = DataFile(self.gridFile)
-                quant2 = grid_dat[quant]
-        return quant2
+            quant2 = ds[quant]
+        except(KeyError):
+            quant2 = ds['t_array'].metadata[quant]
+        return np.squeeze(quant2)
 
     def scanCollect(self, quant, simType='3-addC', subDirs=[]):
         x = []
@@ -741,7 +715,7 @@ class analyse:
 
     def neScanConv(self, subDir=[], simIndex=[], split=False):
         if len(subDir) == 0:
-            subDirs = ['1-base']
+            subDirs = ['']
             os.chdir('{}/{}'.format(self.outDir, 0))
             tmp = next(os.walk('./'))[1]
             tmp.sort()
@@ -756,9 +730,9 @@ class analyse:
             simIndex = simIndex
 
         fig = plt.figure()
-        if split == True:
+        if split is True:
             grid = plt.GridSpec(2, len(subDirs))
-        elif split == False:
+        elif split is False:
             grid = plt.GridSpec(1, len(subDirs))
         ix1 = self.ix1
         mid = self.outMid_idx
@@ -782,7 +756,7 @@ class analyse:
             ne_all.append(10*concatenate(nec))
             tme_all.append(10*concatenate(tmec))
 
-        if split == True:
+        if split is True:
             for i in range(len(ne)):
                 tmp = fig.add_subplot(grid[0, i])
                 for j in range(len(ne[0])):
@@ -797,11 +771,11 @@ class analyse:
             avg_tme_cutoffs.append(int(a/len(tme[0])))
         avg_tme_cutoffs = np.cumsum(avg_tme_cutoffs)
 
-        if split == True:
+        if split is True:
             tmp = fig.add_subplot(grid[1, :])
-        elif split == False:
+        elif split is False:
             tmp = fig.add_subplot(grid[0, :])
-        
+
         for j in range(len(ne[0])):
             tmp.plot(tme_all[j], ne_all[j][:, ix1, mid],
                      label=self.scanParams[j])
@@ -869,7 +843,7 @@ class analyse:
 
         return nu, nvi, pk_idx
 
-        
+
     def plotPeakTargetFlux(self, subDirs=[], simType='3-addC'):
         tmp_nvi = self.scanCollect(quant='NVi', simType=simType, subDirs=subDirs)
         if len(subDirs) == 0:
@@ -1017,19 +991,6 @@ if __name__ == "__main__":
              'PeSource', 'PiSource', 'NeSource']
     # q_ids = ['Ne']
 
-    # cScan = analyse('/users/hm1234/scratch/TCV/'
-    #                 'longtime/cfrac-10-06-19_175728')
-    # rScan = analyse('/users/hm1234/scratch/TCV/'
-    #                 'longtime/rfrac-19-06-19_102728')
-    # dScan = analyse('/users/hm1234/scratch/TCV2/'
-    #                 'gridscan/grid-20-06-19_135947')
-    # newDScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'gridscan/grid-01-07-19_185351')
-    # newCScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'scans/cfrac-23-07-19_163139')
-    # newRScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'scans/rfrac-25-07-19_162302')
-    # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
     cScan = analyse('/users/hm1234/scratch/TCV/'
                     'longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/'
@@ -1048,6 +1009,8 @@ if __name__ == "__main__":
     # x.saveData(q_ids)
     # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234/')
     # x.saveData(q_ids)
+    # x = squashData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    # x.saveData
 
     qlabels = ['Telim', 'Ne']
 
@@ -1060,6 +1023,14 @@ if __name__ == "__main__":
     vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
     hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
 
+    vd = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
+    vd2 = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    hrhd = squashData('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
+
+    vd.saveData()
+    vd2.saveData()
+    hrhd.saveData()
+    
     # hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
     # q_par = d.calc_qPar(1, '3-addC')/1e6
