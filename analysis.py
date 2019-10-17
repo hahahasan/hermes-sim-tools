@@ -1031,8 +1031,8 @@ if __name__ == "__main__":
     #                    'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
-    x = pickleData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
-    x.saveData(q_ids)
+    # x = pickleData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
+    # x.saveData(q_ids)
     # x = pickleData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234/')
     # x.saveData(q_ids)
 
