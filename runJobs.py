@@ -344,6 +344,7 @@ if __name__ == "__main__":
     pathOut = '/users/hm1234/scratch/newTCV'
     pathIn = 'gridscan2'
     pathIn = 'high_recycle'
+    pathIn = 'high_density'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # dateDir = '_turbTest'
 
@@ -387,14 +388,20 @@ if __name__ == "__main__":
     #          'tcv_63161_64x64_profiles_8.2e19.nc']
     # gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
-    # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
-    # gridSim.setup()
-    # gridSim.modInp2('carbon_fraction', 0.06)
-    # gridSim.modInp2('frecycle', 0.99)
-    # gridSim.modInp2('NOUT', 444)
-    # gridSim.modInp2('TIMESTEP', 222)
-    # gridSim.modJob(nProcs, hermesVer, tme)
-    # gridSim.subJob()
+    grids = ['tcv_63127_64x64_profiles_22e19.nc',
+             'tcv_63161_64x64_profiles_22e19.nc']
+
+    # grids = ['tcv_63127_64x64_profiles_1.6e19.nc',
+    #          'tcv_63127_64x64_profiles_4.0e19.nc']
+
+    gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
+    gridSim.setup()
+    gridSim.modInp2('carbon_fraction', 0.04)
+    gridSim.modInp2('frecycle', 0.95)
+    gridSim.modInp2('NOUT', 444)
+    gridSim.modInp2('TIMESTEP', 222)
+    gridSim.modJob(nProcs, hermesVer, tme)
+    gridSim.subJob()
 
     # inpFile = 'BOUT.inp'
     # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
