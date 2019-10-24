@@ -21,6 +21,8 @@ from matplotlib.ticker import FormatStrFormatter
 
 from xbout import open_boutdataset
 from boutdata.squashoutput import squashoutput
+import animatplot as amp
+from xbout.plotting.animate import animate_poloidal, animate_pcolormesh, animate_line
 
 from boutdata.collect import collect
 from boututils.datafile import DataFile
@@ -187,7 +189,8 @@ class analyse:
     def collectData(self, quant, simIndex=0, simType=''):
         os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
         if os.path.isfile('BOUT.dmp.nc') is False:
-            print('{}-{} not squashed. squashing now'.format(simIndex, simType))
+            print('{}-{} not squashed. squashing now'.format(simIndex,
+                                                             simType))
             squashoutput(quiet=True)
         gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
         print(gridFile)
@@ -200,7 +203,7 @@ class analyse:
             quant2 = ds[quant]
         except(KeyError):
             quant2 = ds['t_array'].metadata[quant]
-        return np.squeeze(quant2)
+        return quant2
 
     def scanCollect(self, quant, simType='3-addC', subDirs=[]):
         x = []
@@ -273,7 +276,8 @@ class analyse:
         if movie == 1:
             os.system('mv animation.mp4 {}'.format(filename))
 
-    def plotGridContoursX(self, yind=[], labels=[]):
+    def plotGridContoursX(self, simIndex=0, yind=[], labels=[]):
+        self.gridData(simIndex)
         if ((len(labels) == 0) and (len(yind) == 0)):
             yind = [self.outMid_idx, -1]
             labels = ['Out Mid', 'Target']
@@ -283,6 +287,15 @@ class analyse:
         for i, j in enumerate(yind):
             plt.plot(self.R[:, j], self.Z[:, j],
                      linewidth=4, label=labels[i])
+        split_idx = [self.j11, self.j12, self.j21, self.j22]
+        for i, j in enumerate(split_idx):
+            if i < len(split_idx)-1:
+                plt.plot(self.R[:, j], self.Z[:, j],
+                         linewidth=2, color='k')
+            elif i == len(split_idx)-1:
+                plt.plot(self.R[:, j], self.Z[:, j],
+                         linewidth=2, color='k', label='Splits')
+
         plt.xlabel('R (m)')
         plt.ylabel('Z (m)')
         plt.grid(False)
@@ -291,7 +304,8 @@ class analyse:
         plt.tight_layout()
         plt.show()
 
-    def plotGridContoursY(self, xind=[], labels=[]):
+    def plotGridContoursY(self, simIndex=0, xind=[], labels=[]):
+        self.gridData(simIndex)
         if ((len(labels) == 0) and (len(xind) == 0)):
             xind = [self.ix1]
             labels = ['Seperatrix']
@@ -903,6 +917,86 @@ class analyse:
 
         return nu, te, pk_idx
 
+    def scanimate(self, quant, scanIds=[], simType='3-addC',
+                  animate_over='t', save_as=None, show=False, fps=10,
+                  nrows=None, ncols=None, poloidal_plot=True,
+                  subplots_adjust=None, **kwargs):
+        """
+        Parameters
+        ----------
+        variables : list of str or BoutDataArray
+            The variables to plot. For any string passed, the corresponding
+            variable in this DataSet is used - then the calling DataSet must
+            have only 3 dimensions. It is possible to pass BoutDataArrays to
+            allow more flexible plots, e.g. with different variables being
+            plotted against different axes.
+        """
+
+        if len(scanIds) == 0:
+            nvars = self.scanNum
+            scanIds = range(self.scanNum)
+        else:
+            nvars = len(scanIds)
+
+        if nrows is None and ncols is None:
+            ncols = int(np.ceil(np.sqrt(nvars)))
+            nrows = int(np.ceil(nvars/ncols))
+        elif nrows is None:
+            nrows = int(np.ceil(nvars/ncols))
+        elif ncols is None:
+            ncols = int(np.ceil(nvars/nrows))
+        else:
+            if nrows*ncols < nvars:
+                raise ValueError('Not enough rows*columns to fit all variables')
+
+        fig, axes = plt.subplots(nrows, ncols, squeeze=False)
+
+        scanData = self.scanCollect(quant, simType=simType, subDirs=scanIds)
+
+        if subplots_adjust is not None:
+            fig.subplots_adjust(**subplots_adjust)
+
+        blocks = []
+        for i, ax in zip(scanIds, axes.flatten()):
+            v = scanData[i]
+
+            print(self.scanParams[i])
+
+            data = np.squeeze(v.bout.data)
+            ndims = len(data.dims)
+            # ax.set_title('##########')
+            # print(ax.title)
+
+            if ndims == 2:
+                blocks.append(animate_line(data=data, ax=ax, animate_over=animate_over,
+                                           animate=False, **kwargs))
+            elif ndims == 3:
+                if poloidal_plot:
+                    var_blocks = animate_poloidal(data, ax=ax,
+                                                  animate_over=animate_over,
+                                                  animate=False, **kwargs)
+                    for block in var_blocks:
+                        blocks.append(block)
+                else:
+                    blocks.append(animate_pcolormesh(data=data, ax=ax,
+                                                     animate_over=animate_over,
+                                                     animate=False, **kwargs))
+            else:
+                raise ValueError("Unsupported number of dimensions "
+                                 + str(ndims) + ". Dims are " + str(v.dims))
+
+        timeline = amp.Timeline(np.arange(v.sizes[animate_over]), fps=fps)
+        anim = amp.Animation(blocks, timeline)
+        anim.controls(timeline_slider_args={'text': animate_over})
+
+        if save_as is not None:
+            anim.save(save_as + '.gif', writer='imagemagick')
+
+        if show:
+            plt.show()
+
+        return anim
+
     def calcPsol(self, simIndex=0, simType='3-addC'):
         spe = self.scanCollect('Spe', simType)[simIndex][-1, :, :]
         spi = self.scanCollect('Spi', simType)[simIndex][-1, :, :]
@@ -1023,13 +1117,13 @@ if __name__ == "__main__":
     vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
     hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
 
-    vd = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
-    vd2 = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
-    hrhd = squashData('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
+    # vd = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
+    # vd2 = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    # hrhd = squashData('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
 
-    vd.saveData()
-    vd2.saveData()
-    hrhd.saveData()
+    # vd.saveData()
+    # vd2.saveData()
+    # hrhd.saveData()
     
     # hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
