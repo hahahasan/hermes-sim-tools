@@ -128,11 +128,30 @@ def modify_boundary(gfile, newName='test.g', bndry_coords=[]):
     f.close()
 
     core = lines.split('\n\n')[0]
-#    bndry = lines.split('\n\n')[1]
-#    bndry_head = bndry.split('\n')[0] + '\n'
-#    bndry_coords = bndry.split('\n')[1:]
+    bndry = lines.split('\n\n')[1]
+    bndry_head = bndry.split('\n')[0] + '\n'
+    bndry = bndry.split('\n')[1:]
+    bndry = bndry[0:-1]
     
-    new_bndry_head = '0\t{}\n'.format(int(len(bndry_coords)/2))
+    if len(bndry_coords) == 0:
+        num_bndry_points = eval(bndry_head.split('\t')[1].split('\n')[0])
+        num_sep_points = eval(bndry_head.split('\t')[0])
+        nsp = num_sep_points
+        dec_idx = []
+        for i in range(len(bndry)):
+            dec_idx.append([pos for pos, char in enumerate(bndry[i]) if char == '.'])
+        old_bndry_coords = []
+        for i in range(len(bndry)):
+            for j in dec_idx[i]:
+                old_bndry_coords.append(eval(bndry[i][(j-2):(j+15)]))
+                
+        old_bndry_coords = old_bndry_coords[2*nsp:]
+    else:
+        num_bndry_points = eval(int(len(bndry_coords)/2))
+
+    nbp = num_bndry_points
+    
+    new_bndry_head = '0\t{}\n'.format(nbp)
 
     new_core = core.split('\n')[0] + '\n'
     
@@ -140,6 +159,9 @@ def modify_boundary(gfile, newName='test.g', bndry_coords=[]):
         new_core += j + '\n'
     
     new_bndry = new_bndry_head
+    
+    if len(bndry_coords) == 0:
+        bndry_coords = old_bndry_coords
     
     for i, j in enumerate(bndry_coords):
         i += 1 
@@ -158,6 +180,7 @@ def modify_boundary(gfile, newName='test.g', bndry_coords=[]):
 
     return new_gfile
 
+
 a = [ 6.3400000000E-01, 7.0400000000E-01, 6.7600000000E-01, 7.5000000000E-01,
      9.6500000000E-01, 7.5000000000E-01, 1.1260000000E+00, 5.5000000000E-01,
      1.1260000000E+00, -5.5000000000E-01, 9.6500000000E-01, -7.5000000000E-01,
@@ -166,8 +189,11 @@ a = [ 6.3400000000E-01, 7.0400000000E-01, 6.7600000000E-01, 7.5000000000E-01,
 
 gfile = '63127_1400ms.g'
 
-points = draw_boundary(gfile)
-new_gfile = modify_boundary(gfile, bndry_coords=points)
+new_gfile = modify_boundary(gfile, newName='test_63127.g')
+
+#points = draw_boundary(gfile)
+#new_gfile = modify_boundary(gfile, bndry_coords=points)
+
 
 
 
