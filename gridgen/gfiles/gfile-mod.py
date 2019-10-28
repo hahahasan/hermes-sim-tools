@@ -6,9 +6,9 @@ Created on Fri Sep 13 16:10:11 2019
 @author: hm1234
 """
 
-import numpy as np
+# import numpy as np
 import matplotlib.pyplot as plt
-from boututils.datafile import DataFile
+# from boututils.datafile import DataFile
 
 #class LineDrawer(object):
 #    lines = []
@@ -187,9 +187,9 @@ a = [ 6.3400000000E-01, 7.0400000000E-01, 6.7600000000E-01, 7.5000000000E-01,
      6.7600000000E-01, -7.5000000000E-01, 6.3400000000E-01, -7.0400000000E-01,
      6.3400000000E-01, 7.0400000000E-01]
 
-gfile = '63127_1400ms.g'
+gfile = '63161_1400ms.g'
 
-new_gfile = modify_boundary(gfile, newName='test_63127.g')
+new_gfile = modify_boundary(gfile, newName='tcv_63161_mod.g')
 
 #points = draw_boundary(gfile)
 #new_gfile = modify_boundary(gfile, bndry_coords=points)
