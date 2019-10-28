@@ -363,6 +363,7 @@ if __name__ == "__main__":
     # hermesVer = '/users/hm1234/scratch/BOUT25Jun19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT18Sep19/hermes-2/hermes-2'
+    hermesVer = '/users/hm1234/scratch/BOUT28Oct19/hermes-2/hermes-2'
 
     title = 'grid'
     grids = ['tcv_63127_64x64_profiles_1.6e19.nc',
