@@ -172,7 +172,9 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    baseGrid = 'tcv_new_63161_64x64.nc'
+    shot = 63127
+    dimension = '128x64'
+    baseGrid = 'tcv_{}_{}.nc'.format(shot, dimension)
     # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
@@ -182,7 +184,9 @@ if __name__ == "__main__":
     densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
     densities = [6, 6.5, 7, 7.5, 8.2]
     densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
-    densities = [22]
+    densities = [8.9, 9.6, 10.2, 11, 12]
+    densities = [9.9, 10.5, 11, 12, 13]
+    densities = [1,2,3,4,5,6,7,8,9,10]
 
     pedBase = 0.2
     offsets = []
@@ -192,7 +196,8 @@ if __name__ == "__main__":
         offset = 0.02*d
         offsets.append(offset)
         pedestals.append((0.2*d)-offset)
-        gridFiles.append('tcv_63161_64x64_profiles_{}e19.nc'.format(d))
+        gridFiles.append('tcv_{}_{}_profiles_{}e19.nc'.format(
+            shot, dimension, d))
 
     # offsets = [0.02*1.2]
     # pedestals = [(0.2*1.2)-offsets[0]]
