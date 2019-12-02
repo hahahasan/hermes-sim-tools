@@ -85,8 +85,8 @@ def profile(filename, name, offset, pedestal, hwid=0.1, alpha=0.1):
 
 def createNewProfile(baseGrid, newProfile, offset, pedestal):
     os.system('cp {} {}'.format(baseGrid, newProfile))
-    profile(newProfile, 'Te0', 5, 35, hwid=0.1, alpha=0.1)
-    profile(newProfile, 'Ti0', 5, 35, hwid=0.1, alpha=0.1)
+    profile(newProfile, 'Te0', 5, 100, hwid=0.1, alpha=0.1)
+    profile(newProfile, 'Ti0', 5, 100, hwid=0.1, alpha=0.1)
     profile(newProfile, 'Ne0', offset, pedestal, hwid=0.1, alpha=0.1)
 
     with DataFile(newProfile, write=True) as d:
@@ -110,10 +110,12 @@ def checkProfiles(gridFiles=[], densities=[]):
         densities = np.zeros(len(gridFiles))
     grids = []
     ne = []
+    te = []
     for i in gridFiles:
         grd = DataFile(i)
         grids.append(grd)
         ne.append(grd['Ne0']*1e20)
+        te.append(grd['Te0'])
 
     ix1 = grids[0]['ixseps1']
     j11 = grids[0]['jyseps1_1']
@@ -123,11 +125,20 @@ def checkProfiles(gridFiles=[], densities=[]):
     mid = int((j12+j22)/2)
 
     colors = getDistinctColors(len(gridFiles))
+
+    plt.figure(1)
     plt.axvline(x=ix1, color='black', linestyle='--')
     for i in range(len(ne)):
         plt.plot(ne[i][:, mid], color=colors[i], label=gridFiles[i])
         print(densities[i])
         plt.axhline(y=eval('{}e19'.format(densities[i])), color=colors[i],
+                    linestyle='--')
+
+    plt.figure(2)
+    plt.axvline(x=ix1, color='black', linestyle='--')
+    for i in range(len(te)):
+        plt.plot(te[i][:, mid], color=colors[i], label=gridFiles[i])
+        plt.axhline(y=te[i][ix1, mid], color=colors[i],
                     linestyle='--')
 
     plt.legend()
@@ -161,7 +172,7 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    baseGrid = 'tcv_63127_mod.nc'
+    baseGrid = 'newtcv_63161_64x64.nc'
     # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
@@ -171,6 +182,7 @@ if __name__ == "__main__":
     densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
     densities = [6, 6.5, 7, 7.5, 8.2]
     densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
+    densities = [22]
 
     pedBase = 0.2
     offsets = []
@@ -180,7 +192,7 @@ if __name__ == "__main__":
         offset = 0.02*d
         offsets.append(offset)
         pedestals.append((0.2*d)-offset)
-        gridFiles.append('tcv_63127_64x64_profiles_{}e19.nc'.format(d))
+        gridFiles.append('tcv_63161_64x64_profiles_{}e19.nc'.format(d))
 
     # offsets = [0.02*1.2]
     # pedestals = [(0.2*1.2)-offsets[0]]
