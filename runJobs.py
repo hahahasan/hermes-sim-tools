@@ -167,6 +167,27 @@ class startSim:
                 os.system('sbatch -q short {}.job'.format(self.title))
 
 
+class slabSim(startSim):
+    def __init__(self, pathOut, pathIn, dateDir, inpFile,
+                 scanParams, title='sim'):
+        super().__init__(pathOut, pathIn, dateDir, inpFile, None,
+                         scanParams, title)
+
+    def setup(self):
+        os.mkdir('{}'.format(self.runDir))
+        os.chdir('{}'.format(self.runDir))
+        self.log = logSim(self.runDir, 'log.txt')
+        self.log('title: {}'.format(self.title))
+        self.log('inpFile: {}'.format(self.inpFile))
+        self.log('gridFile: {}'.format(str(self.gridFile)))
+        self.log('scanParams: {}'.format(str(self.scanParams)))
+        for i in range(self.scanNum):
+            os.mkdir(str(i))
+            os.system('cp {}/{} {}/BOUT.inp'.format(self.pathOut,
+                                                    self.inpFile, i))
+        self.inpFile = 'BOUT.inp'
+
+
 class multiGridSim(startSim):
     def __init__(self, pathOut, pathIn, dateDir, inpFile,
                  scanParams, title='sim'):
@@ -226,8 +247,10 @@ class addSim:
         for i in self.scanIDs:
             os.chdir('{}/{}'.format(self.runDir, i))
             os.system('mkdir -p {}'.format(addType))
-            if type(self.gridFile) != str:
+            if type(self.gridFile) == list:
                 os.system('cp {} {}'.format(self.gridFile[i], addType))
+            elif type(self.gridFile) is None:
+                pass
             else:
                 os.system('cp {} {}'.format(self.gridFile, addType))
             os.system('cp *.job {}/{}.job'.format(addType, addType))
@@ -266,18 +289,28 @@ class addSim:
                          lineNum,
                          '{} = {}'.format(param, value))
 
-    def modJob(self, tme):
+    def modJob(self, tme, nProcs=None, optNodes=False):
+        if nProcs is None:
+            nProcs = self.nProcs
+        if optNodes is True:
+            nodes = int(np.ceil(nProcs/40))
+            for i in self.scanIDs:
+                os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
+                replace_line('{}.job'.format(self.addType),
+                             find_line('{}.job'.format(self.addType),
+                                       '--nodes'),
+                             '#SBATCH --nodes={}'.format(nodes))
         for i in self.scanIDs:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             replace_line('{}.job'.format(self.addType),
                          find_line('{}.job'.format(self.addType),
                                    '--ntasks'),
-                         '#SBATCH --ntasks={}'.format(self.nProcs))
+                         '#SBATCH --ntasks={}'.format(nProcs))
             replace_line('{}.job'.format(self.addType),
                          find_line('{}.job'.format(self.addType),
                                    'mpiexec'),
                          'mpiexec -n {} {} -d {}/{}/{} restart'.format(
-                             self.nProcs, self.hermesVer, self.runDir,
+                             nProcs, self.hermesVer, self.runDir,
                              i, self.addType))
             replace_line('{}.job'.format(self.addType),
                          find_line('{}.job'.format(self.addType),
@@ -309,31 +342,32 @@ class addCurrents(addSim):
     pass
 
 
+class restartSim(addSim):
+    pass
+
+
 class addTurbulence(addSim):
     '''
     make sure to use
     export
     PYTHONPATH=/mnt/lustre/groups/phys-bout-2019/BOUT-dev/tools/pylib/:$PYTHONPATH
     '''
-    def addTurb(self, oldDir, addType, MZ=64, param='Vort',
-                pScale=1e-5, multiply=True):
+    def addTurb(self, oldDir, addType,  npes=None, MZ=64,
+                param='Vort', pScale=1e-5, multiply=True):
+        if npes is not None:
+            tempDir = 'temp-turb'
+            self.redistributeProcs(npes=npes, oldDir=oldDir, addType=tempDir)
+            oldDir = tempDir
         self.copyInpFiles(oldDir, addType)
         for i in self.scanIDs:
             os.chdir('{}/{}'.format(self.runDir, i))
             resizeZ(newNz=MZ, path=oldDir, output=addType)
             addnoise(path=addType, var=param, scale=pScale)
-
-
-class testTurbulence(addSim):
-    def redistributeProcs(self, ):
-        print('hi')
-
-    def addTurb(self, inpPath, turbPath, MZ=64, param='Vort', pScale=1e-5,
-                multiply=True):
-        os.chdir(inpPath)
-        os.system('mkdir -p {}'.format(turbPath))
-        resizeZ(newNz=MZ, path='./', output=turbPath)
-        addnoise(path='.', var=param, scale=pScale, multiply=True)
+        self.modFile('nz', MZ)
+        if npes is not None:
+            for i in self.scanIDs:
+                os.chdir('{}/{}'.format(self.runDir, i))
+                os.system('rm -rf {}'.format(tempDir))
 
 
 if __name__ == "__main__":
@@ -341,10 +375,14 @@ if __name__ == "__main__":
     gridFile = 'tcv_52068_64x64_profiles_1e19.nc'
     gridFile = 'tcv_63127_64x64_profiles_1.2e19.nc'
 
-    pathOut = '/users/hm1234/scratch/newTCV'
+    pathOut = '/users/hm1234/scratch/newTCV2'
     pathIn = 'gridscan2'
-    pathIn = 'high_recycle'
-    pathIn = 'high_density'
+    pathIn = 'gridscan'
+    pathIn = 'init'
+    pathIn = 'gridscan3'
+    pathIn = 'hdscan'
+    # pathIn = 'high_recycle'
+    # pathIn = 'high_density'
     dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # dateDir = '_turbTest'
 
@@ -355,8 +393,8 @@ if __name__ == "__main__":
     scanParams = [0.9, 0.93, 0.96, 0.99]
     # scanParams = [0.95]
 
-    nProcs = 160
-    tme = '00:22:22'  # day-hr:min:sec
+    nProcs = 234
+    tme = '00:19:19'  # day-hr:min:sec
     # tme = '10:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
     # hermesVer = '/mnt/lustre/groups/phys-bout-2019/hermes-2-next/hermes-2'
@@ -364,16 +402,15 @@ if __name__ == "__main__":
     hermesVer = '/users/hm1234/scratch/BOUT5Jul19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT18Sep19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT28Oct19/hermes-2/hermes-2'
+    hermesVer = '/users/hm1234/scratch/BOUT21Nov19/hermes-2v2/hermes-2'
 
     title = 'grid'
-    grids = ['tcv_63127_64x64_profiles_1.6e19.nc',
-             'tcv_63127_64x64_profiles_2.0e19.nc',
-             'tcv_63127_64x64_profiles_2.5e19.nc',
-             'tcv_63127_64x64_profiles_3.0e19.nc',
-             'tcv_63127_64x64_profiles_3.25e19.nc',
-             'tcv_63127_64x64_profiles_3.5e19.nc',
-             'tcv_63127_64x64_profiles_4.0e19.nc',
-             'tcv_63127_64x64_profiles_5.2e19.nc']
+
+    grids = ['tcv_63127_256x64_profiles_2e19.nc',
+             'tcv_63127_256x64_profiles_4e19.nc',
+             'tcv_63127_256x64_profiles_6e19.nc',
+             'tcv_63127_256x64_profiles_8e19.nc']
+             # 'tcv_63127_256x64_profiles_10e19.nc']
     # grids = ['tcv_63161_64x64_profiles_1e19.nc',
     #          'tcv_63161_64x64_profiles_2e19.nc',
     #          'tcv_63161_64x64_profiles_3e19.nc',
@@ -389,28 +426,70 @@ if __name__ == "__main__":
     #          'tcv_63161_64x64_profiles_8.2e19.nc']
     # gridFile = 'tcv_63127_64x64_profiles_1.6e19.nc'
 
-    grids = ['tcv_63127_64x64_profiles_22e19.nc',
-             'tcv_63161_64x64_profiles_22e19.nc']
+    # grids = ['newtcv_63127_64x64_profiles_22e19.nc',
+    #          'newtcv_63161_64x64_profiles_22e19.nc']
+
+    # grids = ['tcv_63161_64x64_profiles_8.9e19.nc',
+    #          'tcv_63161_64x64_profiles_9.6e19.nc',
+    #          'tcv_63161_64x64_profiles_10.2e19.nc',
+    #          'tcv_63161_64x64_profiles_11e19.nc',
+    #          'tcv_63161_64x64_profiles_12e19.nc']
+
+    # grids = ['tcv_63127_64x64_profiles_9.9e19.nc',
+    #          'tcv_63127_64x64_profiles_10.5e19.nc',
+    #          'tcv_63127_64x64_profiles_11e19.nc',
+    #          'tcv_63127_64x64_profiles_12e19.nc',
+    #          'tcv_63127_64x64_profiles_13e19.nc']
+
+    # title = 'slab'
+    # scanParams = [0.03, 0.05]
+    # scanParams = [0.04]
+    # nProcs = 64
 
     # grids = ['tcv_63127_64x64_profiles_1.6e19.nc',
     #          'tcv_63127_64x64_profiles_4.0e19.nc']
 
-    gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
-    gridSim.setup()
-    gridSim.modInp2('carbon_fraction', 0.04)
-    gridSim.modInp2('frecycle', 0.95)
-    gridSim.modInp2('NOUT', 444)
-    gridSim.modInp2('TIMESTEP', 222)
-    gridSim.modJob(nProcs, hermesVer, tme)
-    gridSim.subJob()
+    grids = ['tcv_63161_128x64_profiles_1e19.nc',
+             'tcv_63161_128x64_profiles_2e19.nc',
+             'tcv_63161_128x64_profiles_3e19.nc',
+             'tcv_63161_128x64_profiles_4e19.nc',
+             'tcv_63161_128x64_profiles_5e19.nc',
+             'tcv_63161_128x64_profiles_6e19.nc',
+             'tcv_63161_128x64_profiles_7e19.nc',
+             'tcv_63161_128x64_profiles_8e19.nc',
+             'tcv_63161_128x64_profiles_9e19.nc',
+             'tcv_63161_128x64_profiles_10e19.nc']
 
-    # inpFile = 'BOUT.inp'
-    # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
-    #                 scanParams, title)
+    grids = ['tcv_63161_128x64_profiles_1e19.nc',
+             'tcv_63161_128x64_profiles_5e19.nc',
+             'tcv_63161_128x64_profiles_9e19.nc']
+
+    # qgrids = ['tcv_63161_128x64_profiles_1e19.nc']
+
+    # title = 'hdg'
+    # nProcs = 256
+    # tme = '00:19:19'
+    # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
+    # gridSim.setup()
+    # gridSim.modInp2('carbon_fraction', 0.04)
+    # gridSim.modInp2('frecycle', 0.99)
+    # gridSim.modInp2('NOUT', 444)
+    # gridSim.modInp2('TIMESTEP', 222)
+    # gridSim.modJob(nProcs, hermesVer, tme)
+    # gridSim.subJob(shortQ=True)
+
+    # pathOut = '/users/hm1234/scratch/slabTCV/'
+    # pathIn = 'test'
+    # inpFile = 'BOUT2.inp'
+    # nProcs = 192
+    # tme = '00:11:11'
+    # title = 'slab'
+    # scanParams = [0.0]
+    # sim1 = slabSim(pathOut, pathIn, dateDir, inpFile, scanParams, title)
     # sim1.setup()
-    # sim1.modInp1('frecycle')
-    # sim1.modInp2('carbon_fraction', 0.95)
-    # sim1.modInp2('ion_viscosity', 'true')
+    # sim1.modInp1('carbon_fraction')
+    # # sim1.modInp2('carbon_fraction', 0.95)
+    # # sim1.modInp2('ion_viscosity', 'true')
     # sim1.modInp2('NOUT', 444)
     # sim1.modInp2('TIMESTEP', 222)
     # # sim1.modInp2('carbon_fraction', 0.04)
@@ -431,23 +510,48 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234'
     # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544'
     # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-18-09-19_111405'
-    # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426'
     # runDir = '/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128'
+    # runDir = '/users/hm1234/scratch/newTCV/high_density/grid-28-10-19_133357'
+    # runDir = '/users/hm1234/scratch/newTCV/gridscan2/grid-07-11-19_154854'
+    runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-11-19_155631'
+    runDir = '/users/hm1234/scratch/slabTCV/init/slab-25-11-19_143529'
+    runDir = '/users/hm1234/scratch/newTCV2/hdscan/hdg-02-12-19_172620'
 
-    # tme = '23:59:59'
-    # addN = addNeutrals(runDir)
-    # addType = '2-addN'
-    # addN.copyInpFiles(addType=addType)
-    # addN.copyRestartFiles(addType=addType)
-    # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
-    # #                 inpName='BOUT-2Dworks.inp')
-    # addN.modFile('NOUT', 555)
-    # addN.modFile('TIMESTEP', 150)
-    # # addN.modFile('neutral_friction', 'true')
-    # addN.modFile('type', 'mixed', lineNum=214)
-    # addN.modJob(tme)
-    # addN.addVar(Nn=0.04, Pn=0.02)
-    # addN.subJob()
+    tme = '06:66:33'
+    addN = addNeutrals(runDir)
+    addType = '2-addN'
+    addN.copyInpFiles(addType=addType)
+    addN.copyRestartFiles(addType=addType)
+    # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
+    #                 inpName='BOUT-2Dworks.inp')
+    addN.modFile('NOUT', 555)
+    addN.modFile('TIMESTEP', 150)
+    # addN.modFile('neutral_friction', 'true')
+    addN.modFile('type', 'mixed', lineNum=238)
+    addN.modJob(tme)
+    addN.addVar(Nn=0.04, Pn=0.02)
+    addN.subJob()
+
+    # tme = '1-23:59:59'
+    # res = restartSim(runDir, scanIDs=[0, 1, 2])
+    # old = '3-addC'
+    # new = '3-resC-noPI'
+    # res.copyInpFiles(old, new)
+    # res.copyRestartFiles(old, new)
+    # res.modFile('adapt_source', 'false')
+    # res.modJob(tme)
+    # res.subJob()
+
+    # res = restartSim(runDir, scanIDs=[0])
+    # old = '2.1-resN'
+    # new = '2.2-modSolver'
+    # res.copyInpFiles(old, new)
+    # res.copyRestartFiles(old, new)
+    # # res.modFile('use_precon', 'false')
+    # res.modFile('maxl', '5')
+    # res.modJob(tme)
+    # res.subJob()
 
     # tme = '23:59:59'
     # addN = addNeutrals(runDir)
@@ -474,10 +578,39 @@ if __name__ == "__main__":
     # addC.copyRestartFiles(old, new)
     # addC.modFile('j_par', 'true')
     # addC.modFile('j_diamag', 'true')
-    # addC.modFile('split_n0 ', 'false')
-    # addC.modFile('split_n0_psi', 'false')
+    # # addC.modFile('split_n0 ', 'false')
+    # # addC.modFile('split_n0_psi', 'false')
+    # # addC.modFile('adapt_source', 'false')
     # addC.modFile('NOUT', 500)  # 600
-    # addC.modFile('TIMESTEP', 500)  # 333
+    # addC.modFile('TIMESTEP', 333)  # 333
+    # addC.modJob(tme)
+    # addC.subJob()
+
+    # tme = '1-23:59:59'
+    # old = '3-addC'
+    # new = '4-addT'
+    # addT = addTurbulence(runDir, scanIDs=[0])
+    # newProcs = 512
+    # addT.addTurb(old, new, npes=newProcs, MZ=256)
+    # # addT.modFile('nz', 256)
+    # addT.modFile('NOUT', 222)
+    # addT.modFile('TIMESTEP', 5)
+    # addT.modJob(tme=tme, nProcs=newProcs, optNodes=True)
+    # addT.subJob()
+
+    # tme = '1-23:59:59'
+    # old = '3-addC'
+    # new = '3.1-modPI'
+    # addC = addCurrents(runDir, scanIDs=[0,1,2])
+    # addC.copyInpFiles(old, new)
+    # addC.copyRestartFiles(old, new)
+    # addC.modFile('source_p', 1e-1)
+    # addC.modFile('source_i', 1e-4)
+    # # addC.modFile('split_n0 ', 'false')
+    # # addC.modFile('split_n0_psi', 'false')
+    # # addC.modFile('adapt_source', 'false')
+    # # addC.modFile('NOUT', 500)  # 600
+    # # addC.modFile('TIMESTEP', 500)  # 333
     # addC.modJob(tme)
     # addC.subJob()
 
@@ -549,8 +682,8 @@ if __name__ == "__main__":
     # addT.subJob()
 
     # addT = addTurbulence(runDir)
-    # addT.copyInpFiles('2-addC', '4-addT')
-    # addT.addTurb('2-addC', '4-addT')
+    # addT.copyInpFiles('3-addC', '4-addT')
+    # addT.addTurb('3-addC', '4-addT')
     # addT.modJob(tme)
     # addT.modFile('MZ', 64)
     # addT.modFile('NOUT', 333)
