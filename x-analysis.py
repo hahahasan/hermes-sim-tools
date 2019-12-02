@@ -1,4 +1,4 @@
-##!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Feb 14 15:16:33 2019
@@ -115,17 +115,19 @@ class squashData:
             a.insert(0, '')
             self.subDirs.append(a)
 
-    def saveData(self, subDir=[]):
+    def saveData(self, subDir=[], scanIds=[]):
         '''
         quant, subDirs: will always assume populated base directory
         '''
+        if len(scanIds) == 0:
+            scanIds = range(self.scanNum)
         if len(subDir) == 0:
             subDirs = self.subDirs
         else:
             subDirs = []
-            for i in range(self.scanNum):
+            for i in scanIds:
                 subDirs.append(subDir)
-        for i in range(self.scanNum):
+        for i in scanIds:
             print('################# squashing scanParam {}'.format(
                 self.scanParams[i]))
             for j in range(0, len(subDirs[i])):
@@ -152,10 +154,22 @@ class analyse:
                                     'scanParams')
         self.title = read_line('{}/{}'.format(outDir, logFile),
                                'title')
+        self.gridFile = read_line('{}/{}'.format(outDir, logFile),
+                                  'gridFile')
+        if type(self.title) is not str:
+            self.title = 'grid'
         self.scanNum = len(self.scanParams)
         if os.path.isdir(self.analysisDir) is not True:
             os.mkdir(self.analysisDir)
-        self.gridData()
+        if self.gridFile is not None:
+            self.gridData()
+        self.subDirs = []
+        for i in range(self.scanNum):
+            # print('{}/{}'.format(dataDir, i))
+            a = next(os.walk('{}/{}'.format(outDir, i)))[1]
+            a.sort()
+            a.insert(0, '')
+            self.subDirs.append(a)
 
     def listKeys(self, simIndex=0, simType=''):
         os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
@@ -163,11 +177,16 @@ class analyse:
         self.datFile = datFile
         return datFile.keys()
 
-    def gridData(self, simIndex=0):
-        os.chdir('{}/{}'.format(self.outDir, simIndex))
+    def gridData(self, simIndex=0, simType=''):
+        os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
         self.gridFile = fnmatch.filter(next(os.walk('./'))[2],
                                        '*profile*')[0]
         grid_dat = DataFile(self.gridFile)
+        if os.path.isfile('BOUT.dmp.nc') is False:
+            print('{}-{} not squashed. squashing now'.format(simIndex,
+                                                             simType))
+            squashoutput(quiet=True)
+        self.datFile = DataFile('BOUT.dmp.nc')
         self.grid_dat = grid_dat
         self.j11 = int(grid_dat["jyseps1_1"])
         self.j12 = int(grid_dat["jyseps1_2"])
@@ -186,24 +205,38 @@ class analyse:
         R2 = self.R[:, self.j12:self.j22]
         self.outMid_idx = self.j12 + np.where(R2 == np.amax(R2))[1][0]
 
+    def gridPlot(self, quant2D, simIndex=0, simType=''):
+        self.gridData(simIndex, simType)
+        try:
+            quant2D = self.grid_dat[quant2D]
+        except(KeyError):
+            quant2D = self.datFile[quant2D]
+        gridcontourf(self.grid_dat, quant2D)
+
     def collectData(self, quant, simIndex=0, simType=''):
         os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
         if os.path.isfile('BOUT.dmp.nc') is False:
             print('{}-{} not squashed. squashing now'.format(simIndex,
                                                              simType))
             squashoutput(quiet=True)
-        gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
+        if self.gridFile is not None:
+            gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
+        else:
+            gridFile = None
         print(gridFile)
         ds = open_boutdataset(
             'BOUT.dmp.nc',
             gridfilepath=gridFile,
             coordinates={'x': 'psi_pol', 'y': 'theta', 'z': 'zeta'},
             geometry='toroidal')
-        try:
-            quant2 = ds[quant]
-        except(KeyError):
-            quant2 = ds['t_array'].metadata[quant]
-        return quant2
+        if quant == 'all':
+            quant2 = ds
+        else:
+            try:
+                quant2 = ds[quant]
+            except(KeyError):
+                quant2 = ds['t_array'].metadata[quant]
+        return np.squeeze(quant2)
 
     def scanCollect(self, quant, simType='3-addC', subDirs=[]):
         x = []
@@ -669,9 +702,9 @@ class analyse:
         # plt.close()
         # plt.cla()
 
-    def neConv(self, simIndex, subDir=[]):
+    def neConv(self, simIndex, subDir=[], split=False):
         try:
-            os.chdir('{}/{}'.format(self.dataDir, simIndex))
+            os.chdir('{}/{}'.format(self.outDir, simIndex))
             test = 'data'
         except(FileNotFoundError):
             os.chdir('{}/{}'.format(self.outDir, simIndex))
@@ -690,8 +723,10 @@ class analyse:
             subDirs = subDir
 
         fig = plt.figure()
-        grid = plt.GridSpec(2, len(subDirs), wspace=0.4, hspace=0.3)
-
+        if split is True:
+            grid = plt.GridSpec(2, len(subDirs))
+        elif split is False:
+            grid = plt.GridSpec(1, len(subDirs))
         ne = []
         tme = []
         for i in subDirs:
@@ -724,6 +759,94 @@ class analyse:
 
         tmp.set_xlabel(r'Time ($m s$)')
         tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+
+        plt.show()
+
+    def PItest(self, subDir=[], simIndex=[], xinds=[]):
+        if len(subDir) == 0:
+            subDirs = ['']
+            os.chdir('{}/{}'.format(self.outDir, 0))
+            tmp = next(os.walk('./'))[1]
+            tmp.sort()
+            for i in tmp:
+                subDirs.append(i)
+        else:
+            subDirs = subDir
+
+        if len(simIndex) == 0:
+            simIndex = list(range(self.scanNum))
+        else:
+            simIndex = simIndex
+
+        fig = plt.figure()
+        grid = plt.GridSpec(len(xinds), len(subDirs))
+
+        ne = []
+        tme = []
+        for i in subDirs:
+            tmp_ne = self.scanCollect('Ne', i, simIndex)
+            y_avg_ne = []
+            for j in tmp_ne:
+                y_avg_ne.append(np.mean(j, axis=2))
+            ne.append(y_avg_ne)
+            tme.append(self.scanCollect('t_array', i, simIndex))
+
+        ne_all = []
+        tme_all = []
+        for i in range(len(ne[0])):
+            nec = []
+            tmec = []
+            for j in range(len(ne)):
+                nec.append(ne[j][i])
+                tmec.append(tme[j][i])
+            ne_all.append(10*concatenate(nec))
+            tme_all.append(10*concatenate(tmec))
+
+        dx = self.collectData('dx')
+        dy = self.collectData('dy')
+        J = self.collectData('J')
+
+        # sum_ne = []
+        # for i in 
+
+        avg_tme_cutoffs = []
+        for i in range(len(tme)-1):
+            a = 0
+            for j in tme[i]:
+                a += len(j)
+            avg_tme_cutoffs.append(int(a/len(tme[0])))
+        avg_tme_cutoffs = np.cumsum(avg_tme_cutoffs)
+
+        for x in range(len(xinds)):
+            tmp = fig.add_subplot(grid[x, :])
+            for j in range(len(ne[0])):
+                tmp.plot(tme_all[j], ne_all[j][:, xinds[x]],
+                         label=self.scanParams[j])
+                tmp.set_ylabel('x-index: {}'.format(xinds[x]))
+
+        # if split is True:
+        #     tmp = fig.add_subplot(grid[1, :])
+        # elif split is False:
+        #     tmp = fig.add_subplot(grid[0, :])
+
+        # for j in range(len(ne[0])):
+        #     tmp.plot(tme_all[j], ne_all[j][:, ix1, mid],
+        #              label=self.scanParams[j])
+
+        for i in range(len(tme)-1):
+            tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
+                        linestyle='--')
+        tmp.set_xlabel(r'Time ($m s$) '+'x-index: {}'.format(xinds[-1]))
+        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+
+        fig
+        plt.legend(loc='upper center', ncol=2,
+                   bbox_to_anchor=[0.4, 1],
+                   bbox_transform=plt.gcf().transFigure,
+                   borderaxespad=0.0,
+                   # shadow=True,
+                   fancybox=True,
+                   title=self.title)
 
         plt.show()
 
@@ -823,7 +946,7 @@ class analyse:
         if self.title == 'grid':
             nu = []
             for i in subDirs:
-                nu.append(eval(self.scanParams[i].split('e')[1][2:]))
+                nu.append(eval(self.scanParams[i].split('e')[-2][2:]))
         else:
             nu = []
             for i in subDirs:
@@ -840,26 +963,41 @@ class analyse:
         if fType == 'peak':
             for i in range(len(subDirs)):
                 plt.scatter(nu[i], nvi[i][pk_idx[i]], s=50)
-                plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
+            plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
         elif fType == 'integrated':
             nvi_int = []
             for i in range(len(subDirs)):
                 a = 0
                 for j in range(nvi[i].shape[1]):
-                    a += tmp_nvi[i][-1, j, -2]*J[i][j, -2]*dx[i][j, -2]*dy[i][j, -2]
+                    a += tmp_nvi[i][-1, j, -2]*J[i][j, -2] * dx[i][j, -2] \
+                        * dy[i][j, -2]
                 nvi_int.append(a * 1e20 * 95777791)
-            plt.scatter(nu[i], nvi_int[i], s=50)
+                plt.scatter(nu[i], nvi_int[i], s=50)
             plt.ylabel(r'Integrated target flux [m$^{-2}$s$^{-1}$]')
+            nvi = nvi_int
+        elif fType == 't_average':
+            prev_t = 300
+            nvi_tAverage = []
+            pk_idx = []
+            for i in range(len(subDirs)):
+                tmp = np.mean(tmp_nvi[i][-prev_t:, :, -3], axis=0) \
+                    + np.mean(tmp_nvi[i][-prev_t:, :, -2], axis=0)
+                nvi_tAverage.append(tmp * 0.5 * 95777791e20)
+                pk_idx.append(np.where(nvi_tAverage[-1] ==
+                                       np.amax(nvi_tAverage[-1]))[0][0])
+                plt.scatter(nu[i], nvi_tAverage[i][pk_idx[i]], s=50)
+            plt.ylabel(r'time averaged target flux [m$^{-2}$s$^{-1}$]')
+            nvi = nvi_tAverage
         else:
-            print('please select either "integrated" or "peak"')
+            print('please select "integrated"/"peak"/"t_average"')
         plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
         plt.show()
 
         return nu, nvi, pk_idx
 
-
     def plotPeakTargetFlux(self, subDirs=[], simType='3-addC'):
-        tmp_nvi = self.scanCollect(quant='NVi', simType=simType, subDirs=subDirs)
+        tmp_nvi = self.scanCollect(quant='NVi', simType=simType,
+                                   subDirs=subDirs)
         if len(subDirs) == 0:
             subDirs = range(len(self.scanParams))
         else:
@@ -890,7 +1028,8 @@ class analyse:
         return nu, nvi, pk_idx
 
     def plotPeakTargetTe(self, subDirs=[], simType='3-addC'):
-        tmp_te = self.scanCollect(quant='Telim', simType=simType, subDirs=subDirs)
+        tmp_te = self.scanCollect(quant='Telim', simType=simType,
+                                  subDirs=subDirs)
         if len(subDirs) == 0:
             subDirs = range(len(self.scanParams))
         else:
@@ -917,7 +1056,14 @@ class analyse:
 
         return nu, te, pk_idx
 
-    def scanimate(self, quant, scanIds=[], simType='3-addC',
+    def xPlot(self, quant, simIndex=0, simType='3-addC',
+              tvals=[], xvals=[], yvals=[]):
+        quant = self.collectData(quant, simIndex, simType)
+        if len(tvals) == 0:
+            tvals = [None, None, 1]
+        quant.isel(zeta=0, t=slice(tvals[0], tvals[1], tvals[2]), )
+
+    def scanimate(self, quant, scanIds=[], simType='3-addC', frames=1,
                   animate_over='t', save_as=None, show=False, fps=10,
                   nrows=None, ncols=None, poloidal_plot=True,
                   subplots_adjust=None, **kwargs):
@@ -947,34 +1093,43 @@ class analyse:
             ncols = int(np.ceil(nvars/nrows))
         else:
             if nrows*ncols < nvars:
-                raise ValueError('Not enough rows*columns to fit all variables')
+                raise ValueError(
+                    'Not enough rows*columns to fit all variables')
 
         fig, axes = plt.subplots(nrows, ncols, squeeze=False)
 
         scanData = self.scanCollect(quant, simType=simType, subDirs=scanIds)
+
+        t_len = []
+        for data in scanData:
+            t_len.append(data.shape[0])
+        min_tlen = min(t_len)
+        for i, data in enumerate(scanData):
+            scanData[i] = data.isel(t=slice(None, min_tlen, frames))
 
         if subplots_adjust is not None:
             fig.subplots_adjust(**subplots_adjust)
 
         blocks = []
         for i, ax in zip(scanIds, axes.flatten()):
+            print(i, ax)
             v = scanData[i]
-
             print(self.scanParams[i])
 
             data = np.squeeze(v.bout.data)
             ndims = len(data.dims)
-            # ax.set_title('##########')
             # print(ax.title)
 
             if ndims == 2:
-                blocks.append(animate_line(data=data, ax=ax, animate_over=animate_over,
+                blocks.append(animate_line(data=data, ax=ax,
+                                           animate_over=animate_over,
                                            animate=False, **kwargs))
             elif ndims == 3:
                 if poloidal_plot:
                     var_blocks = animate_poloidal(data, ax=ax,
                                                   animate_over=animate_over,
-                                                  animate=False, **kwargs)
+                                                  animate=False,
+                                                  title=i, **kwargs)
                     for block in var_blocks:
                         blocks.append(block)
                 else:
@@ -1019,7 +1174,11 @@ class analyse:
             os.chdir('{}/{}'.format(self.outDir, simIndex))
         else:
             os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-        datFile = DataFile('BOUT.dmp.0.nc')
+        try:
+            datFile = DataFile('BOUT.dmp.nc')
+        except(FileNotFoundError):
+            print('data not squashed')
+            datFile = DataFile('BOUT.dmp.0.nc')
         Tnorm = float(datFile['Tnorm'])
         Nnorm = float(datFile['Nnorm'])
         gamma_e = 4
@@ -1089,15 +1248,15 @@ if __name__ == "__main__":
                     'longtime/cfrac-10-06-19_175728')
     rScan = analyse('/users/hm1234/scratch/TCV/'
                     'longtime/rfrac-19-06-19_102728')
-    dScan = analyse('/users/hm1234/scratch/TCV2/'
-                    'gridscan/grid-20-06-19_135947')
-    newDScan = analyse('/users/hm1234/scratch/newTCV/'
-                       'gridscan/grid-01-07-19_185351')
+    # dScan = analyse('/users/hm1234/scratch/TCV2/'
+    #                 'gridscan/grid-20-06-19_135947')
+    # newDScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'gridscan/grid-01-07-19_185351')
     newCScan = analyse('/users/hm1234/scratch/newTCV/'
                        'scans/cfrac-23-07-19_163139')
-    newRScan = analyse('/users/hm1234/scratch/newTCV/'
-                       'scans/rfrac-25-07-19_162302')
-    tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
+    # newRScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'scans/rfrac-25-07-19_162302')
+    # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
 
     # x = pickleData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
     # x.saveData(q_ids)
@@ -1108,14 +1267,23 @@ if __name__ == "__main__":
 
     qlabels = ['Telim', 'Ne']
 
-    d = newDScan
-    d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
-    d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    # d = newDScan
+    # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    d4 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-24-09-19_112435')
     c = newCScan
-    r = newRScan
+    # r = newRScan
     vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
     vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
     hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
+    hd = analyse('/mnt/lustre/users/hm1234/newTCV/high_density/grid-28-10-19_133357')
+
+    d5 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-11-19_155631')
+    # d5.saveData()
+    vd3 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-07-11-19_154854')
+    # vd3.saveData()
+
+    slab = analyse('/users/hm1234/scratch/slabTCV/test/slab-29-11-19_170638')
 
     # vd = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
     # vd2 = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
@@ -1124,7 +1292,7 @@ if __name__ == "__main__":
     # vd.saveData()
     # vd2.saveData()
     # hrhd.saveData()
-    
+
     # hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
     # q_par = d.calc_qPar(1, '3-addC')/1e6
