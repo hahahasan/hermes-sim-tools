@@ -998,8 +998,8 @@ if __name__ == "__main__":
     # x = squashData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
     # x.saveData
 
-    x = squashData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
-    x.saveData()
+    # x = squashData('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
+    # x.saveData()
     hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
     # q_par = d.calc_qPar(1, '3-addC')/1e6

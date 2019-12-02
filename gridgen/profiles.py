@@ -175,6 +175,7 @@ if __name__ == "__main__":
     shot = 63127
     dimension = '128x64'
     baseGrid = 'tcv_{}_{}.nc'.format(shot, dimension)
+
     # baseGrid = 'test.nc'
 
     densities = [0.8, 1.2, 1.6, 2.0]
