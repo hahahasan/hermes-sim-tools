@@ -53,6 +53,13 @@ def read_line(filename, lookup):
     return tmp
 
 
+def list_grids(densities, shotnum, machine='tcv', resolution='64x64'):
+    d_names = []
+    for d in densities:
+        d_names.append(f'{machine}_{shotnum}_{resolution}_profiles_{d}e19.nc')
+    return d_names
+
+
 class logSim:
     '''
     For logging simulation parameters
@@ -154,7 +161,7 @@ class startSim:
             os.system('cp {}/{} {}/BOUT.inp'.format(self.pathOut,
                                                     self.inpFile, i))
             if type(self.gridFile) == str:
-                os.system('cp {}/{} {}'.format(self.pathOut, self.gridFile, i))
+                os.system('cp /users/hm1234/scratch/gridfiles/{} {}'.format(self.gridFile, i))
         self.inpFile = 'BOUT.inp'
         self.modInp2('grid', self.gridFile)
 
@@ -162,9 +169,9 @@ class startSim:
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
             if shortQ is False:
-                os.system('sbatch {}.job'.format(self.title))
+                os.system('srun {}.job'.format(self.title))
             elif shortQ is True:
-                os.system('sbatch -q short {}.job'.format(self.title))
+                os.system('srun -q short {}.job'.format(self.title))
 
 
 class slabSim(startSim):
@@ -198,8 +205,8 @@ class multiGridSim(startSim):
     def setup(self):
         super().setup()
         for i in range(self.scanNum):
-            os.system('cp {}/{} {}/{}'.format(self.pathOut, self.scanParams[i],
-                                              self.runDir, i))
+            os.system('cp /users/hm1234/scratch/gridfiles/{} {}/{}'.format(
+                self.pathOut, self.scanParams[i], self.runDir, i))
         self.modInp1('grid')
 
 
@@ -325,9 +332,9 @@ class addSim:
         for i in self.scanIDs:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             if shortQ is False:
-                os.system('sbatch {}.job'.format(self.addType))
+                os.system('srun {}.job'.format(self.addType))
             elif shortQ is True:
-                os.system('sbatch -q short {}.job'.format(self.addType))
+                os.system('srun -q short {}.job'.format(self.addType))
 
 
 class addNeutrals(addSim):
@@ -403,6 +410,7 @@ if __name__ == "__main__":
     hermesVer = '/users/hm1234/scratch/BOUT18Sep19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT28Oct19/hermes-2/hermes-2'
     hermesVer = '/users/hm1234/scratch/BOUT21Nov19/hermes-2v2/hermes-2'
+    hermesVer = '/users/hm1234/scratch/BOUT21Nov19/test/hermes-2/hermes-2'
 
     title = 'grid'
 
@@ -464,19 +472,24 @@ if __name__ == "__main__":
              'tcv_63161_128x64_profiles_5e19.nc',
              'tcv_63161_128x64_profiles_9e19.nc']
 
+    grids = ['tcv_63161_extendedpsi_64x64_profiles_1e19.nc',
+             'tcv_63161_extendedpsi_64x64_profiles_3e19.nc',
+             'tcv_63161_extendedpsi_64x64_profiles_5e19.nc']
+
     # qgrids = ['tcv_63161_128x64_profiles_1e19.nc']
 
-    # title = 'hdg'
-    # nProcs = 256
-    # tme = '00:19:19'
-    # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
-    # gridSim.setup()
-    # gridSim.modInp2('carbon_fraction', 0.04)
-    # gridSim.modInp2('frecycle', 0.99)
-    # gridSim.modInp2('NOUT', 444)
-    # gridSim.modInp2('TIMESTEP', 222)
-    # gridSim.modJob(nProcs, hermesVer, tme)
-    # gridSim.subJob(shortQ=True)
+    inpFile = 'BOUT2.inp'
+    title = 'expsi'
+    nProcs = 256
+    tme = '06:66:66'
+    gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
+    gridSim.setup()
+    gridSim.modInp2('carbon_fraction', 0.04)
+    gridSim.modInp2('frecycle', 0.99)
+    gridSim.modInp2('NOUT', 444)
+    gridSim.modInp2('TIMESTEP', 222)
+    gridSim.modJob(nProcs, hermesVer, tme)
+    gridSim.subJob()
 
     # pathOut = '/users/hm1234/scratch/slabTCV/'
     # pathIn = 'test'
@@ -517,29 +530,30 @@ if __name__ == "__main__":
     runDir = '/users/hm1234/scratch/newTCV/gridscan/grid-07-11-19_155631'
     runDir = '/users/hm1234/scratch/slabTCV/init/slab-25-11-19_143529'
     runDir = '/users/hm1234/scratch/newTCV2/hdscan/hdg-02-12-19_172620'
+    runDir = '/users/hm1234/scratch/newTCV2/hdscan/expsi-04-12-19_203752'
 
-    tme = '06:66:33'
-    addN = addNeutrals(runDir)
-    addType = '2-addN'
-    addN.copyInpFiles(addType=addType)
-    addN.copyRestartFiles(addType=addType)
-    # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
-    #                 inpName='BOUT-2Dworks.inp')
-    addN.modFile('NOUT', 555)
-    addN.modFile('TIMESTEP', 150)
-    # addN.modFile('neutral_friction', 'true')
-    addN.modFile('type', 'mixed', lineNum=238)
-    addN.modJob(tme)
-    addN.addVar(Nn=0.04, Pn=0.02)
-    addN.subJob()
+    # tme = '06:66:33'
+    # addN = addNeutrals(runDir)
+    # addType = '2-addN'
+    # addN.copyInpFiles(addType=addType)
+    # addN.copyRestartFiles(addType=addType)
+    # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
+    # #                 inpName='BOUT-2Dworks.inp')
+    # addN.modFile('NOUT', 555)
+    # addN.modFile('TIMESTEP', 150)
+    # # addN.modFile('neutral_friction', 'true')
+    # addN.modFile('type', 'mixed', lineNum=229)
+    # addN.modJob(tme)
+    # addN.addVar(Nn=0.04, Pn=0.02)
+    # addN.subJob()
 
-    # tme = '1-23:59:59'
-    # res = restartSim(runDir, scanIDs=[0, 1, 2])
-    # old = '3-addC'
-    # new = '3-resC-noPI'
+    # tme = '06:66:66'
+    # res = restartSim(runDir, scanIDs=[0])
+    # old = '2-addN'
+    # new = '2.2-addN'
     # res.copyInpFiles(old, new)
     # res.copyRestartFiles(old, new)
-    # res.modFile('adapt_source', 'false')
+    # # res.modFile('adapt_source', 'false')
     # res.modJob(tme)
     # res.subJob()
 
@@ -572,7 +586,7 @@ if __name__ == "__main__":
 
     # tme = '1-23:59:59'
     # old = '2-addN'
-    # new = '3-addC'
+    # new = '3.1-addC'
     # addC = addCurrents(runDir)
     # addC.copyInpFiles(old, new)
     # addC.copyRestartFiles(old, new)
@@ -581,9 +595,9 @@ if __name__ == "__main__":
     # # addC.modFile('split_n0 ', 'false')
     # # addC.modFile('split_n0_psi', 'false')
     # # addC.modFile('adapt_source', 'false')
-    # addC.modFile('NOUT', 500)  # 600
-    # addC.modFile('TIMESTEP', 333)  # 333
-    # addC.modJob(tme)
+    # addC.modFile('NOUT', 444)  # 600
+    # addC.modFile('TIMESTEP', 2)  # 333
+    # addC.modJob(tme, optNodes=True)
     # addC.subJob()
 
     # tme = '1-23:59:59'
