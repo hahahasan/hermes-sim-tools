@@ -142,11 +142,12 @@ class squashData:
                 title = subDirs[i][j]
                 print('############## collecting for {}'.format(title))
                 os.chdir('{}/{}/{}'.format(self.dataDir, i, title))
-                if os.path.isfile('BOUT.dmp.nc') is True:
+                if os.path.isfile('squashed.nc') is True:
                     print('already squashed data'.format())
                     continue
                 try:
-                    squashoutput(quiet=True)
+                    squashoutput(outputname='squashed.nc', compress=True,
+                                 complevel=1, quiet=True)
                 except(OSError):
                     print('could not squash {}-{}'.format(i, title))
                     continue
@@ -190,11 +191,12 @@ class analyse:
         self.gridFile = fnmatch.filter(next(os.walk('./'))[2],
                                        '*profile*')[0]
         grid_dat = DataFile(self.gridFile)
-        if os.path.isfile('BOUT.dmp.nc') is False:
+        if os.path.isfile('squashed.nc') is False:
             print('{}-{} not squashed. squashing now'.format(simIndex,
                                                              simType))
-            squashoutput(quiet=True)
-        self.datFile = DataFile('BOUT.dmp.nc')
+            squashoutput(outputname='squashed.nc', compress=True,
+                         complevel=1, quiet=True)
+        self.datFile = DataFile('squashed.nc')
         self.grid_dat = grid_dat
         self.j11 = int(grid_dat["jyseps1_1"])
         self.j12 = int(grid_dat["jyseps1_2"])
@@ -223,17 +225,18 @@ class analyse:
 
     def collectData(self, quant='all', simIndex=0, simType=''):
         os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-        if os.path.isfile('BOUT.dmp.nc') is False:
+        if os.path.isfile('squashed.nc') is False:
             print('{}-{} not squashed. squashing now'.format(simIndex,
                                                              simType))
-            squashoutput(quiet=True)
+            squashoutput(outputname='squashed.nc', compress=True,
+                         complevel=1, quiet=True)
         if self.gridFile is not None:
             gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
         else:
             gridFile = None
         print(gridFile)
         ds = open_boutdataset(
-            'BOUT.dmp.nc',
+            'squashed.nc',
             gridfilepath=gridFile,
             coordinates={'x': 'psi_pol', 'y': 'theta', 'z': 'zeta'},
             geometry='toroidal')
@@ -1183,7 +1186,7 @@ class analyse:
         else:
             os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
         try:
-            datFile = DataFile('BOUT.dmp.nc')
+            datFile = DataFile('squashed.nc')
         except(FileNotFoundError):
             print('data not squashed')
             datFile = DataFile('BOUT.dmp.0.nc')

@@ -81,8 +81,8 @@ class startSim:
     where they should be copied to. Also defines methods for modifying
     BOUT.inp file and job submission scripts
     '''
-    def __init__(self, pathOut, pathIn, dateDir, inpFile, gridFile,
-                 scanParams, title='sim'):
+    def __init__(self, pathOut, pathIn, dateDir, inpFile='BOUT.inp',
+                 gridFile=None, scanParams=None, title='sim'):
         os.chdir(pathOut)
         self.pathOut = pathOut
         self.pathIn = pathIn
@@ -91,7 +91,10 @@ class startSim:
         self.runDir = '{}/{}/{}-{}'.format(pathOut, pathIn, title, dateDir)
         self.scanParams = scanParams
         self.title = title
-        self.scanNum = len(scanParams)
+        if self.scanParams is not None:
+            self.scanNum = len(scanParams)
+        else:
+            self.scanNum = 1
         if os.path.isdir('{}/{}'.format(pathOut, pathIn)) is not True:
             os.chdir(pathOut)
             os.mkdir(pathIn)
@@ -121,13 +124,22 @@ class startSim:
                          lineNum,
                          '{} = {}'.format(param, value))
 
-    def modJob(self, nProcs, hermesVer, tme):
+    def modJob(self, nProcs, hermesVer, tme, optNodes=True):
         self.log('nProcs: {}'.format(nProcs))
         self.log('hermesVer: {}'.format(hermesVer))
         self.log('simTime: {}'.format(tme))
+        if optNodes is True:
+            nodes = int(np.ceil(nProcs/40))
+            for i in range(self.scanNum):
+                os.chdir('{}/{}'.format(self.runDir, i))
+                replace_line('{}.job'.format(self.title),
+                             find_line('{}.job'.format(self.title),
+                                       '--nodes'),
+                             '#SBATCH --nodes={}'.format(nodes))
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
-            os.system('cp {}/test.job {}.job'.format(self.pathOut, self.title))
+            # os.system('cp {}/test.job {}.job'.format(
+            #     self.pathOut, self.title))
             replace_line('{}.job'.format(self.title),
                          find_line('{}.job'.format(self.title),
                                    '--ntasks'),
@@ -160,39 +172,44 @@ class startSim:
             os.mkdir(str(i))
             os.system('cp {}/{} {}/BOUT.inp'.format(self.pathOut,
                                                     self.inpFile, i))
+            os.system('cp {}/{} {}/{}.job'.format(
+                self.pathOut, 'test.job', i, self.title))
             if type(self.gridFile) == str:
-                os.system('cp /users/hm1234/scratch/gridfiles/{} {}'.format(self.gridFile, i))
+                os.system('cp /users/hm1234/scratch/gridfiles/{} {}'.format(
+                    self.gridFile, i))
         self.inpFile = 'BOUT.inp'
-        self.modInp2('grid', self.gridFile)
+        if self.gridFile is not None:
+            self.modInp2('grid', self.gridFile)
 
     def subJob(self, shortQ=False):
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
             if shortQ is False:
-                os.system('srun {}.job'.format(self.title))
+                os.system('sbatch {}.job'.format(self.title))
             elif shortQ is True:
-                os.system('srun -q short {}.job'.format(self.title))
+                os.system('sbatch -q short {}.job'.format(self.title))
 
 
 class slabSim(startSim):
-    def __init__(self, pathOut, pathIn, dateDir, inpFile,
-                 scanParams, title='sim'):
-        super().__init__(pathOut, pathIn, dateDir, inpFile, None,
-                         scanParams, title)
+    pass
+    # def __init__(self, pathOut, pathIn, dateDir, inpFile,
+    #              gridFile=None, scanParams=None, title='sim'):
+    #     super().__init__(pathOut, pathIn, dateDir, inpFile, None,
+    #                      scanParams=None, title='sim')
 
-    def setup(self):
-        os.mkdir('{}'.format(self.runDir))
-        os.chdir('{}'.format(self.runDir))
-        self.log = logSim(self.runDir, 'log.txt')
-        self.log('title: {}'.format(self.title))
-        self.log('inpFile: {}'.format(self.inpFile))
-        self.log('gridFile: {}'.format(str(self.gridFile)))
-        self.log('scanParams: {}'.format(str(self.scanParams)))
-        for i in range(self.scanNum):
-            os.mkdir(str(i))
-            os.system('cp {}/{} {}/BOUT.inp'.format(self.pathOut,
-                                                    self.inpFile, i))
-        self.inpFile = 'BOUT.inp'
+    # def setup(self):
+    #     os.mkdir('{}'.format(self.runDir))
+    #     os.chdir('{}'.format(self.runDir))
+    #     self.log = logSim(self.runDir, 'log.txt')
+    #     self.log('title: {}'.format(self.title))
+    #     self.log('inpFile: {}'.format(self.inpFile))
+    #     self.log('gridFile: {}'.format(str(self.gridFile)))
+    #     self.log('scanParams: {}'.format(str(self.scanParams)))
+    #     for i in range(self.scanNum):
+    #         os.mkdir(str(i))
+    #         os.system('cp {}/{} {}/BOUT.inp'.format(self.pathOut,
+    #                                                 self.inpFile, i))
+    #     self.inpFile = 'BOUT.inp'
 
 
 class multiGridSim(startSim):
@@ -216,10 +233,16 @@ class addSim:
         os.chdir(runDir)
         self.scanParams = read_line(logFile, 'scanParams')
         if len(scanIDs) == 0:
-            self.scanIDs = list(np.arange(len(self.scanParams)))
+            if self.scanParams is not None:
+                self.scanIDs = list(np.arange(len(self.scanParams)))
+            else:
+                self.scanIDs = [0]
         else:
             self.scanIDs = scanIDs
-        self.scanNum = len(self.scanParams)
+        if self.scanParams is not None:
+            self.scanNum = len(self.scanParams)
+        else:
+            self.scanNum = 1
         self.title = read_line(logFile, 'title')
         # self.inpFile = read_line(logFile, 'inpFile')
         self.inpFile = 'BOUT.inp'
@@ -254,9 +277,12 @@ class addSim:
         for i in self.scanIDs:
             os.chdir('{}/{}'.format(self.runDir, i))
             os.system('mkdir -p {}'.format(addType))
+            # print(os.system('pwd'))
+            # os.system('cp {}/{}/{}/BOUT.inp {}'.format(self.runDir, i,
+            #                                            oldDir, addType))
             if type(self.gridFile) == list:
                 os.system('cp {} {}'.format(self.gridFile[i], addType))
-            elif type(self.gridFile) is None:
+            elif self.gridFile is None:
                 pass
             else:
                 os.system('cp {} {}'.format(self.gridFile, addType))
@@ -296,7 +322,7 @@ class addSim:
                          lineNum,
                          '{} = {}'.format(param, value))
 
-    def modJob(self, tme, nProcs=None, optNodes=False):
+    def modJob(self, tme, nProcs=None, optNodes=True):
         if nProcs is None:
             nProcs = self.nProcs
         if optNodes is True:
@@ -332,9 +358,9 @@ class addSim:
         for i in self.scanIDs:
             os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
             if shortQ is False:
-                os.system('srun {}.job'.format(self.addType))
+                os.system('sbatch {}.job'.format(self.addType))
             elif shortQ is True:
-                os.system('srun -q short {}.job'.format(self.addType))
+                os.system('sbatch -q short {}.job'.format(self.addType))
 
 
 class addNeutrals(addSim):
@@ -449,10 +475,56 @@ if __name__ == "__main__":
     #          'tcv_63127_64x64_profiles_12e19.nc',
     #          'tcv_63127_64x64_profiles_13e19.nc']
 
-    # title = 'slab'
-    # scanParams = [0.03, 0.05]
-    # scanParams = [0.04]
-    # nProcs = 64
+    title = 'gauss'
+    tme = '08:88:88'
+    # tme = '00:19:59'
+    nProcs = 512
+    hermesVer = '/users/hm1234/scratch/hermes2/9Jan20/hermes-2'
+
+    slabSim = slabSim('/users/hm1234/scratch/slabTCV', '2020runs',
+                      dateDir, 'BOUT5.inp', title=title)
+    slabSim.setup()
+    slabSim.modInp2('NOUT', 222)
+    slabSim.modInp2('TIMESTEP', 22)
+    # power of 3 still fast using fft but maybe more
+    # robust to triangular instabilities)
+    # slabSim.modInp2('nz', 243)
+    # slabSim.modInp2('ny', 32, lineNum=18)
+    # slabSim.modInp2('ramp_j_diamag', 1.0)
+    slabSim.modJob(nProcs, hermesVer, tme)
+    slabSim.subJob(shortQ=False)
+
+    tme = '08:88:88'
+    # runDir = '/users/hm1234/scratch/slabTCV/2020runs/slab-17-01-20_104716'
+    runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-24-01-20_155235'
+    # res = restartSim(runDir,)
+    # old = None
+    # new = '2-moreTime'
+    # res.copyInpFiles(old, new)
+    # res.copyRestartFiles(old, new)
+    # # res.modFile('output_ddt', 'true')
+    # res.modFile('NOUT', 128)
+    # res.modFile('TIMESTEP', 32)
+    # # res.modFile('ion_viscosity', 'false')
+    # res.modFile('ramp_j_diamag', 1.0)
+    # res.modJob(tme)
+    # res.subJob()
+
+    # runDir = '/users/hm1234/scratch/slabTCV/2020runs/sim-13-01-20_112202'
+    # tme = '12:12:12'
+    # addN = addNeutrals(runDir)
+    # addType = '2-addN'
+    # addN.copyInpFiles(addType=addType)
+    # addN.copyRestartFiles(addType=addType)
+    # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
+    # #                 inpName='BOUT-2Dworks.inp')
+    # addN.modFile('NOUT', 100)
+    # addN.modFile('TIMESTEP', 2)
+    # # addN.modFile('neutral_friction', 'true')
+    # addN.modFile('type', 'mixed', lineNum=241)
+    # addN.modJob(tme, optNodes=True)
+    # addN.addVar(Nn=0.04, Pn=0.02)
+    # addN.subJob()
 
     # grids = ['tcv_63127_64x64_profiles_1.6e19.nc',
     #          'tcv_63127_64x64_profiles_4.0e19.nc']
@@ -478,18 +550,18 @@ if __name__ == "__main__":
 
     # qgrids = ['tcv_63161_128x64_profiles_1e19.nc']
 
-    inpFile = 'BOUT2.inp'
-    title = 'expsi'
-    nProcs = 256
-    tme = '06:66:66'
-    gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
-    gridSim.setup()
-    gridSim.modInp2('carbon_fraction', 0.04)
-    gridSim.modInp2('frecycle', 0.99)
-    gridSim.modInp2('NOUT', 444)
-    gridSim.modInp2('TIMESTEP', 222)
-    gridSim.modJob(nProcs, hermesVer, tme)
-    gridSim.subJob()
+    # inpFile = 'BOUT2.inp'
+    # title = 'expsi'
+    # nProcs = 256
+    # tme = '06:66:66'
+    # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
+    # gridSim.setup()
+    # gridSim.modInp2('carbon_fraction', 0.04)
+    # gridSim.modInp2('frecycle', 0.99)
+    # gridSim.modInp2('NOUT', 444)
+    # gridSim.modInp2('TIMESTEP', 222)
+    # gridSim.modJob(nProcs, hermesVer, tme)
+    # gridSim.subJob()
 
     # pathOut = '/users/hm1234/scratch/slabTCV/'
     # pathIn = 'test'
