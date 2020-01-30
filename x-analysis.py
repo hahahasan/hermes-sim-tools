@@ -33,6 +33,14 @@ from boututils.boutarray import BoutArray
 import colorsys
 from inspect import getsource as GS
 
+from functools import reduce
+
+
+def factors(n):
+    return set(reduce(list.__add__,
+                      ([i, n//i] for i in range(1, int(n**0.5) + 1)
+                       if n % i == 0)))
+
 
 def getSource(obj):
     lines = GS(obj)
@@ -134,11 +142,12 @@ class squashData:
                 title = subDirs[i][j]
                 print('############## collecting for {}'.format(title))
                 os.chdir('{}/{}/{}'.format(self.dataDir, i, title))
-                if os.path.isfile('BOUT.dmp.nc') is True:
+                if os.path.isfile('squashed.nc') is True:
                     print('already squashed data'.format())
                     continue
                 try:
-                    squashoutput(quiet=True)
+                    squashoutput(outputname='squashed.nc', compress=True,
+                                 complevel=1, quiet=True)
                 except(OSError):
                     print('could not squash {}-{}'.format(i, title))
                     continue
@@ -182,11 +191,12 @@ class analyse:
         self.gridFile = fnmatch.filter(next(os.walk('./'))[2],
                                        '*profile*')[0]
         grid_dat = DataFile(self.gridFile)
-        if os.path.isfile('BOUT.dmp.nc') is False:
+        if os.path.isfile('squashed.nc') is False:
             print('{}-{} not squashed. squashing now'.format(simIndex,
                                                              simType))
-            squashoutput(quiet=True)
-        self.datFile = DataFile('BOUT.dmp.nc')
+            squashoutput(outputname='squashed.nc', compress=True,
+                         complevel=1, quiet=True)
+        self.datFile = DataFile('squashed.nc')
         self.grid_dat = grid_dat
         self.j11 = int(grid_dat["jyseps1_1"])
         self.j12 = int(grid_dat["jyseps1_2"])
@@ -213,19 +223,20 @@ class analyse:
             quant2D = self.datFile[quant2D]
         gridcontourf(self.grid_dat, quant2D)
 
-    def collectData(self, quant, simIndex=0, simType=''):
+    def collectData(self, quant='all', simIndex=0, simType=''):
         os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-        if os.path.isfile('BOUT.dmp.nc') is False:
+        if os.path.isfile('squashed.nc') is False:
             print('{}-{} not squashed. squashing now'.format(simIndex,
                                                              simType))
-            squashoutput(quiet=True)
+            squashoutput(outputname='squashed.nc', compress=True,
+                         complevel=1, quiet=True)
         if self.gridFile is not None:
             gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
         else:
             gridFile = None
         print(gridFile)
         ds = open_boutdataset(
-            'BOUT.dmp.nc',
+            'squashed.nc',
             gridfilepath=gridFile,
             coordinates={'x': 'psi_pol', 'y': 'theta', 'z': 'zeta'},
             geometry='toroidal')
@@ -1175,7 +1186,7 @@ class analyse:
         else:
             os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
         try:
-            datFile = DataFile('BOUT.dmp.nc')
+            datFile = DataFile('squashed.nc')
         except(FileNotFoundError):
             print('data not squashed')
             datFile = DataFile('BOUT.dmp.0.nc')
@@ -1284,6 +1295,8 @@ if __name__ == "__main__":
     # vd3.saveData()
 
     slab = analyse('/users/hm1234/scratch/slabTCV/test/slab-29-11-19_170638')
+    hdg = analyse('/users/hm1234/scratch/newTCV2/hdscan/hdg-02-12-19_172620')
+    # hdg.saveData()
 
     # vd = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
     # vd2 = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
@@ -1295,35 +1308,37 @@ if __name__ == "__main__":
 
     # hd2 = analyse('/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435')
 
-    # q_par = d.calc_qPar(1, '3-addC')/1e6
-    # s = d.centreNormalZ(1, '3-addC')*1000
+    # q_par = d4.calc_qPar(1, '2-addN')/1e6
+    # s = d4.centreNormalZ(1, '2-addN')*1000
 
     # # for some reason
     # s = s.astype('float64')
     # q_par = q_par.astype('float64')
 
-    # for k in np.arange(556):
-    # newDScan.quantYScan(simType='2-addN',
-    #                     quant=qlabels,
-    #                     yind=[-1, 37, -10],
-    #                     tind=-1)
+    # # for k in np.arange(556):
+    # # newDScan.quantYScan(simType='2-addN',
+    # #                     quant=qlabels,
+    # #                     yind=[-1, 37, -10],
+    # #                     tind=-1)
 
-    # newDScan.neScanConv()
+    # # newDScan.neScanConv()
 
-    # newDScan.neConv(0)
+    # # newDScan.neConv(0)
 
-    # newCScan.neScanConv()
+    # # newCScan.neScanConv()
 
-    # cScan.quantYScan(simType='3-addC', quant=['Telim'], yind=[-1])
+    # # cScan.quantYScan(simType='3-addC', quant=['Telim'], yind=[-1])
 
     # plt.plot(s, q_par, 'ro', markersize=4)
-    # i = 0 # 34
-    # j = 34 # 63
+    # i = 0  # 34
+    # j = 34  # 63
     # plt.plot(s[i], q_par[i], 'bo', markersize=4)
     # plt.plot(s[j], q_par[j], 'bo', markersize=4)
     # x = s[i:j]
     # y = q_par[i:j]
-    # popt, pcov = curve_fit(d.eich, x, y, maxfev=999999)
+    # print('8888888888888888')
+    # popt, pcov = curve_fit(d4.eich, x, y, maxfev=999999)
+    # print('################')
     # plt.plot(x, eich(x, *popt), 'g-')
     # # popt, pcov = curve_fit(eich, x, y, p0=[2, 12, 1])
     # # plt.plot(x, eich(x, *popt), 'g-')
@@ -1418,4 +1433,64 @@ if __name__ == "__main__":
     # #            bbox_transform=plt.gcf().transFigure)
     # plt.legend()
     # plt.show()
+
+# sn = vd2.scanCollect('Sn', simType='2-addN')
+# spe = vd2.scanCollect('Spe', simType='2-addN')
+# spi = vd2.scanCollect('Spi', simType='2-addN')
+# J = vd2.scanCollect('J', simType='2-addN')
+# dx = vd2.scanCollect('dx', simType='2-addN')
+# dy = vd2.scanCollect('dy', simType='2-addN')
+
+# P_sn = []
+# for k in range(5):
+#     x = 0
+#     for i in range(64):
+#         for j in range(64):
+#             x += sn[k].values[-1, i, j]*J[k].values[i,j]*dx[k].values[i,j]*dy[k].values[i,j]
+#     print(x)
+#     P_sn.append(x)
+
+# P_spi = []
+# for k in range(5):
+#     x = 0
+#     for i in range(64):
+#         for j in range(64):
+#             x += spi[k].values[-1, i, j]*J[k].values[i,j]*dx[k].values[i,j]*dy[k].values[i,j]
+#     print(x)
+#     P_spi.append(x)
+
+# P_spe = []
+# for k in range(5):
+#     x = 0
+#     for i in range(64):
+#         for j in range(64):
+#             x += spe[k].values[-1, i, j]*J[k].values[i,j]*dx[k].values[i,j]*dy[k].values[i,j]
+#     print(x)
+#     P_spe.append(x)
+
+# densities = [6, 6.5, 7, 7.5, 8.2]
+
+# P_sn = [437.8769478077677,
+#         452.62636585742615,
+#         375.2648321441369,
+#         481.5114781772363,
+#         684.2161422505203]
+
+# P_spi = [2543.8336685344702,
+#          2882.750766461647,
+#          3223.5583696973854,
+#          3586.859441228167,
+#          4130.976394727855]
+
+# P_spe = [11577.611491243135,
+#          12822.99044906976,
+#          14144.60154753619,
+#          15453.354321093278,
+#          17251.87049585934]
+
+# P_tot = [14559.322107585373,
+#          16158.367581388833,
+#          17743.42474937771,
+#          19521.725240498683,
+#          22067.063032837716]
 
