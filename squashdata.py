@@ -37,4 +37,6 @@ def factors(n):
                        if n % i == 0)))
 
 if __name__ == "__main__":
-    os.chdir
+    dir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-28-01-20_232138/0'
+    os.chdir(dir)
+    squashoutput(outputname='squashed.nc', compress=True, complevel=1)
