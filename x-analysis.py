@@ -23,6 +23,7 @@ from xbout import open_boutdataset
 from boutdata.squashoutput import squashoutput
 import animatplot as amp
 from xbout.plotting.animate import animate_poloidal, animate_pcolormesh, animate_line
+import xarray as xr
 
 from boutdata.collect import collect
 from boututils.datafile import DataFile
@@ -265,6 +266,21 @@ class analyse:
             for i in subDirs:
                 x.append(self.collectData(quant, i, simType))
         return x
+
+    def concatenateData(self, subDirs=None, simIndex=0):
+        if subDirs is None:
+            subDirs = self.subDirs[simIndex]
+
+        a = []
+        for i in subDirs:
+            a.append(self.collectData(simIndex=simIndex, simType=i))
+
+        c = xr.combine_nested(a, concat_dim='t')
+
+        for i in list(c.data_vars):
+            c[i].attrs['metadata'] = a[0]['t_array'].attrs['metadata']
+
+        return c
 
     def showScanData(self, quant, simType, interval=5, filename='blah',
                      movie=0, fps=5, dpi=300):
