@@ -4,6 +4,7 @@ import sys
 import datetime
 import time
 from boutdata.restart import addvar
+from boutdata.restart import create
 from boutdata.restart import addnoise
 from boutdata.restart import resizeZ
 from boutdata.restart import redistribute
@@ -101,7 +102,8 @@ class startSim:
 
     def modInp1(self, param, lineNum=None):
         if lineNum is None:
-            lineNum = find_line('{}/{}'.format(self.pathOut, self.inpFile),
+            lineNum = find_line('{}/0/{}'.format(
+                self.runDir, self.inpFile),
                                 param)
         else:
             lineNum = lineNum
@@ -114,7 +116,8 @@ class startSim:
     def modInp2(self, param, value, lineNum=None):
         self.log('Modified {} to: {}'.format(param, value))
         if lineNum is None:
-            lineNum = find_line('{}/{}'.format(self.pathOut, self.inpFile),
+            lineNum = find_line('{}/0/{}'.format(
+                self.runDir, self.inpFile),
                                 param)
         else:
             lineNum = lineNum
@@ -293,14 +296,24 @@ class addSim:
                 cmd = 'cp {}/{} {}'.format(oldDir, self.inpFile, addType)
             os.system(cmd)
 
-    def copyRestartFiles(self, oldDir=None, addType='restart'):
-        if oldDir is None:
-            cmd = 'cp BOUT.restart.* {}'.format(addType)
+    def copyRestartFiles(self, oldDir=None, addType='restart', t=None):
+        if t is None:
+            if oldDir is None:
+                cmd = 'cp BOUT.restart.* {}'.format(addType)
+            else:
+                cmd = 'cp {}/BOUT.restart.* {}'.format(oldDir, addType)
+            for i in self.scanIDs:
+                os.chdir('{}/{}'.format(self.runDir, i))
+                os.system(cmd)
         else:
-            cmd = 'cp {}/BOUT.restart.* {}'.format(oldDir, addType)
-        for i in self.scanIDs:
-            os.chdir('{}/{}'.format(self.runDir, i))
-            os.system(cmd)
+            for i in self.scanIDs:
+                if oldDir is None:
+                    os.chdir('{}/{}'.format(self.runDir, i))
+                else:
+                    os.chdir('{}/{}/{}'.format(
+                        self.runDir, i, oldDir))
+                create(final=t, path="./", output='{}/{}/{}'.format(
+                    self.runDir, i, addType))
 
     def redistributeProcs(self, oldDir, addType, npes):
         self.copyInpFiles(oldDir, addType)
@@ -353,6 +366,10 @@ class addSim:
                          find_line('{}.job'.format(self.addType),
                                    '--time'),
                          '#SBATCH --time={}'.format(tme))
+            replace_line('{}.job'.format(self.addType),
+                         find_line('{}.job'.format(self.addType),
+                                   '--mem'),
+                         '#SBATCH --mem={}'.format('8gb'))
 
     def subJob(self, shortQ=False):
         for i in self.scanIDs:
@@ -476,39 +493,43 @@ if __name__ == "__main__":
     #          'tcv_63127_64x64_profiles_13e19.nc']
 
     title = 'gauss'
-    tme = '08:88:88'
+    tme = '23:59:59'
     # tme = '00:19:59'
     nProcs = 512
     hermesVer = '/users/hm1234/scratch/hermes2/9Jan20/hermes-2'
 
-    slabSim = slabSim('/users/hm1234/scratch/slabTCV', '2020runs',
-                      dateDir, 'BOUT5.inp', title=title)
-    slabSim.setup()
-    slabSim.modInp2('NOUT', 222)
-    slabSim.modInp2('TIMESTEP', 22)
-    # power of 3 still fast using fft but maybe more
-    # robust to triangular instabilities)
-    # slabSim.modInp2('nz', 243)
-    # slabSim.modInp2('ny', 32, lineNum=18)
-    # slabSim.modInp2('ramp_j_diamag', 1.0)
-    slabSim.modJob(nProcs, hermesVer, tme)
-    slabSim.subJob(shortQ=False)
+    # slabSim = slabSim('/users/hm1234/scratch/slabTCV', '2020runs',
+    #                   dateDir, 'BOUT5.inp', title=title)
+    # slabSim.setup()
+    # slabSim.modInp2('NOUT', 222)
+    # slabSim.modInp2('TIMESTEP', 111)
+    # slabSim.modInp2('ion_viscosity', 'false')
+    # # power of 3 still fast using fft but maybe more
+    # # robust to triangular instabilities)
+    # # slabSim.modInp2('nz', 243)
+    # # slabSim.modInp2('ny', 32, lineNum=18)
+    # # slabSim.modInp2('ramp_j_diamag', 1.0)
+    # slabSim.modJob(nProcs, hermesVer, tme)
+    # slabSim.subJob(shortQ=False)
 
-    tme = '08:88:88'
+    tme = '23:59:59'
     # runDir = '/users/hm1234/scratch/slabTCV/2020runs/slab-17-01-20_104716'
     runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-24-01-20_155235'
-    # res = restartSim(runDir,)
-    # old = None
-    # new = '2-moreTime'
-    # res.copyInpFiles(old, new)
-    # res.copyRestartFiles(old, new)
-    # # res.modFile('output_ddt', 'true')
-    # res.modFile('NOUT', 128)
-    # res.modFile('TIMESTEP', 32)
-    # # res.modFile('ion_viscosity', 'false')
-    # res.modFile('ramp_j_diamag', 1.0)
-    # res.modJob(tme)
-    # res.subJob()
+    runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-10-02-20_100102'
+    runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-14-02-20_153923'
+    res = restartSim(runDir,)
+    old = None
+    new = '2-hyper'
+    res.copyInpFiles(old, new)
+    res.copyRestartFiles(old, new, t=-10)
+    # res.modFile('output_ddt', 'true')
+    # res.modFile('NOUT', 200)
+    # res.modFile('TIMESTEP', 50)
+    # res.modFile('ion_viscosity', 'false')
+    res.modFile('ramp_j_diamag', 1.0)
+    res.modFile('hyper', 0.1, 148)
+    res.modJob(tme)
+    res.subJob()
 
     # runDir = '/users/hm1234/scratch/slabTCV/2020runs/sim-13-01-20_112202'
     # tme = '12:12:12'

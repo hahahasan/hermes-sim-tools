@@ -1122,10 +1122,10 @@ class analyse:
             fig.subplots_adjust(**subplots_adjust)
 
         blocks = []
-        for i, ax in zip(scanIds, axes.flatten()):
-            print(i, ax)
+        for i, (j, ax) in enumerate(zip(scanIds, axes.flatten())):
+            # print(i, ax)
             v = scanData[i]
-            print(self.scanParams[i])
+            print(self.scanParams[j])
 
             data = np.squeeze(v.bout.data)
             ndims = len(data.dims)
@@ -1140,7 +1140,7 @@ class analyse:
                     var_blocks = animate_poloidal(data, ax=ax,
                                                   animate_over=animate_over,
                                                   animate=False,
-                                                  title=i, **kwargs)
+                                                  title=j, **kwargs)
                     for block in var_blocks:
                         blocks.append(block)
                 else:
