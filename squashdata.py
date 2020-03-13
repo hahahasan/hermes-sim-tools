@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -36,5 +36,8 @@ def factors(n):
                       ([i, n//i] for i in range(1, int(n**0.5) + 1)
                        if n % i == 0)))
 
+
 if __name__ == "__main__":
-    os.chdir
+    dir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-14-02-20_153923/0/2-hyper/'
+    os.chdir(dir)
+    squashoutput(outputname='squashed.nc', compress=True, complevel=1)

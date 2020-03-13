@@ -23,6 +23,7 @@ from xbout import open_boutdataset
 from boutdata.squashoutput import squashoutput
 import animatplot as amp
 from xbout.plotting.animate import animate_poloidal, animate_pcolormesh, animate_line
+import xarray as xr
 
 from boutdata.collect import collect
 from boututils.datafile import DataFile
@@ -146,6 +147,7 @@ class squashData:
                     print('already squashed data'.format())
                     continue
                 try:
+                    # os.system('rm BOUT.dmp.nc')
                     squashoutput(outputname='squashed.nc', compress=True,
                                  complevel=1, quiet=True)
                 except(OSError):
@@ -265,6 +267,21 @@ class analyse:
             for i in subDirs:
                 x.append(self.collectData(quant, i, simType))
         return x
+
+    def concatenateData(self, subDirs=None, simIndex=0):
+        if subDirs is None:
+            subDirs = self.subDirs[simIndex]
+
+        a = []
+        for i in subDirs:
+            a.append(self.collectData(simIndex=simIndex, simType=i))
+
+        c = xr.combine_nested(a, concat_dim='t')
+
+        for i in list(c.data_vars):
+            c[i].attrs['metadata'] = a[0]['t_array'].attrs['metadata']
+
+        return c
 
     def showScanData(self, quant, simType, interval=5, filename='blah',
                      movie=0, fps=5, dpi=300):
@@ -1122,10 +1139,10 @@ class analyse:
             fig.subplots_adjust(**subplots_adjust)
 
         blocks = []
-        for i, ax in zip(scanIds, axes.flatten()):
-            print(i, ax)
+        for i, (j, ax) in enumerate(zip(scanIds, axes.flatten())):
+            # print(i, ax)
             v = scanData[i]
-            print(self.scanParams[i])
+            print(self.scanParams[j])
 
             data = np.squeeze(v.bout.data)
             ndims = len(data.dims)
@@ -1140,7 +1157,7 @@ class analyse:
                     var_blocks = animate_poloidal(data, ax=ax,
                                                   animate_over=animate_over,
                                                   animate=False,
-                                                  title=i, **kwargs)
+                                                  title=j, **kwargs)
                     for block in var_blocks:
                         blocks.append(block)
                 else:
@@ -1255,16 +1272,16 @@ if __name__ == "__main__":
              'PeSource', 'PiSource', 'NeSource']
     # q_ids = ['Ne']
 
-    cScan = analyse('/users/hm1234/scratch/TCV/'
-                    'longtime/cfrac-10-06-19_175728')
-    rScan = analyse('/users/hm1234/scratch/TCV/'
-                    'longtime/rfrac-19-06-19_102728')
-    # dScan = analyse('/users/hm1234/scratch/TCV2/'
-    #                 'gridscan/grid-20-06-19_135947')
-    # newDScan = analyse('/users/hm1234/scratch/newTCV/'
-    #                    'gridscan/grid-01-07-19_185351')
-    newCScan = analyse('/users/hm1234/scratch/newTCV/'
-                       'scans/cfrac-23-07-19_163139')
+    # cScan = analyse('/users/hm1234/scratch/TCV/'
+    #                 'longtime/cfrac-10-06-19_175728')
+    # rScan = analyse('/users/hm1234/scratch/TCV/'
+    #                 'longtime/rfrac-19-06-19_102728')
+    # # dScan = analyse('/users/hm1234/scratch/TCV2/'
+    # #                 'gridscan/grid-20-06-19_135947')
+    # # newDScan = analyse('/users/hm1234/scratch/newTCV/'
+    # #                    'gridscan/grid-01-07-19_185351')
+    # newCScan = analyse('/users/hm1234/scratch/newTCV/'
+    #                    'scans/cfrac-23-07-19_163139')
     # newRScan = analyse('/users/hm1234/scratch/newTCV/'
     #                    'scans/rfrac-25-07-19_162302')
     # tScan = analyse('/users/hm1234/scratch/newTCV/gridscan/test')
@@ -1278,23 +1295,23 @@ if __name__ == "__main__":
 
     qlabels = ['Telim', 'Ne']
 
-    # d = newDScan
-    # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
-    # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
-    d4 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-24-09-19_112435')
-    c = newCScan
-    # r = newRScan
-    vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
-    vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
-    hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
-    hd = analyse('/mnt/lustre/users/hm1234/newTCV/high_density/grid-28-10-19_133357')
+    # # d = newDScan
+    # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
+    # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
+    # d4 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-24-09-19_112435')
+    # c = newCScan
+    # # r = newRScan
+    # vd = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
+    # vd2 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-23-09-19_140426')
+    # hrhd = analyse('/users/hm1234/scratch/newTCV/high_recycle/grid-25-09-19_165128')
+    # hd = analyse('/mnt/lustre/users/hm1234/newTCV/high_density/grid-28-10-19_133357')
 
-    d5 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-11-19_155631')
-    # d5.saveData()
-    vd3 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-07-11-19_154854')
+    # d5 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-11-19_155631')
+    # # d5.saveData()
+    # vd3 = analyse('/users/hm1234/scratch/newTCV/gridscan2/grid-07-11-19_154854')
     # vd3.saveData()
 
-    slab = analyse('/users/hm1234/scratch/slabTCV/test/slab-29-11-19_170638')
+    # slab = analyse('/users/hm1234/scratch/slabTCV/test/slab-29-11-19_170638')
     hdg = analyse('/users/hm1234/scratch/newTCV2/hdscan/hdg-02-12-19_172620')
     # hdg.saveData()
 
