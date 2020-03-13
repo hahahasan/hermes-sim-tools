@@ -308,6 +308,32 @@ class addSim:
                 os.system('qsub -q short {}.pbs'.format(self.addType))
 
 
+class startFromOldSim(startSim):
+    def __init__(self, pathOut, runDir, logFile='log.txt'):
+        logFile = self.modify_rundir(runDir, logFile)
+        super().__init__()
+        
+        
+
+    def modify_rundir(self, runDir, logFile):
+        stringSplit = list(np.roll(runDir.split('/'), -1))
+        for i, j in enumerate(stringSplit):
+            temp = None
+            try:
+                temp = type(eval(j)) 
+            except(NameError, SyntaxError):
+                pass
+            if temp is int:
+                stringID = i
+                break
+        newString = '/'
+        for i in stringSplit[0:stringID]:
+            newString += i + '/'
+        logFile = newString + logFile
+        scanID = stringSplit[stringID]
+        return logFile, scanID
+
+
 class addNeutrals(addSim):
     def addVar(self, Nn=0.1, Pn=0.05):
         scanIds = self.scanIDs
@@ -366,7 +392,7 @@ if __name__ == "__main__":
     scanParams = [0.9, 0.93, 0.96, 0.99]
     # scanParams = [0.95]
 
-    nProcs = 160
+    nProcs = 256
     tme = '00:22:22'  # day-hr:min:sec
     # tme = '10:10:00'
     # hermesVer = '/users/hm1234/scratch/BOUT-test4/hermes-2/hermes-2'
@@ -410,15 +436,16 @@ if __name__ == "__main__":
             'newtcv2_63161_64x64_profiles_8e19.nc']
     
     tme = '00:22:22'
-    nProcs = 256
-    gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
-    gridSim.setup()
-    gridSim.modInp2('carbon_fraction', 0.04)
-    gridSim.modInp2('frecycle', 0.99)
-    gridSim.modInp2('NOUT', 444)
-    gridSim.modInp2('TIMESTEP', 222)
-    gridSim.modJob(nProcs, hermesVer, tme)
-    gridSim.subJob()
+    # nProcs = 256
+    # gridSim = multiGridSim(pathOut, pathIn, dateDir, inpFile, grids, title)
+    # gridSim.setup()
+    # gridSim.modInp2('carbon_fraction', 0.04)
+    # gridSim.modInp2('frecycle', 0.99)
+    # gridSim.modInp2('NOUT', 444)
+    # gridSim.modInp2('TIMESTEP', 222)
+    # gridSim.modInp2('ion_viscosity', 'false')
+    # gridSim.modJob(nProcs, hermesVer, tme)
+    # gridSim.subJob()
 
     # inpFile = 'BOUT.inp'
     # sim1 = startSim(pathOut, pathIn, dateDir, inpFile, gridFile,
@@ -450,16 +477,17 @@ if __name__ == "__main__":
     # runDir = '/fs2/e281/e281/hm1234/test/scan/grid-17-09-19_164731'
     # runDir = '/fs2/e281/e281/hm1234/newTCV/hgridscan/grid-24-09-19_112435'
     runDir = '/home/e281/e281/hm1234/hm1234/newTCV2/test/grid-04-12-19_211204'
+    runDir = '/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436'
 
     # addN = addNeutrals(runDir)
     # addN.copyInpFiles(addType='2-addN')
     # addN.copyRestartFiles(addType='2-addN')
     # # addN.copyNewInp(oldDir='/users/hm1234/scratch/newTCV',
     # #                 inpName='BOUT-2Dworks.inp')
-    # addN.modFile('NOUT', 555)
-    # addN.modFile('TIMESTEP', 150)
+    # addN.modFile('NOUT', 444)
+    # addN.modFile('TIMESTEP', 111)
     # # addN.modFile('neutral_friction', 'true')
-    # addN.modFile('type', 'mixed', lineNum=229)
+    # addN.modFile('type', 'mixed', lineNum=215)
     # addN.modJob(tme)
     # addN.addVar(Nn=0.04, Pn=0.02)
     # addN.subJob()
@@ -481,41 +509,38 @@ if __name__ == "__main__":
     # addN.addVar(Nn=0.04, Pn=0.02)
     # addN.subJob()
 
-    # tme = '23:59:59'
-    # old = '2-addN2'
-    # new = '3-addC2'
-    # addC = addCurrents(runDir, scanIDs=[0, 1, 2, 3, 4])
-    # addC.copyInpFiles(old, new)
-    # addC.copyRestartFiles(old, new)
+    # # tme = '23:59:59'
+    # # old = '2-addN2'
+    # # new = '3-addC2'
+    # # addC = addCurrents(runDir, scanIDs=[0, 1, 2, 3, 4])
+    # # addC.copyInpFiles(old, new)
+    # # addC.copyRestartFiles(old, new)
     # tme = '1-23:59:59'
-    # old = '3-addC2'
-    # new = '3-resC3'
+    # old = '2-addN'
+    # new = '3-addC'
     # addC = addCurrents(runDir)
     # addC.copyInpFiles(old, new)
     # addC.copyRestartFiles(old, new)
     # addC.modFile('j_par', 'true')
     # addC.modFile('j_diamag', 'true')
-    # addC.modFile('split_n0 ', 'false')
-    # addC.modFile('split_n0_psi', 'false')
-    # addC.modFile('NOUT', 600)
-    # addC.modFile('TIMESTEP', 333)
+    # # addC.modFile('split_n0 ', 'false')
+    # # addC.modFile('split_n0_psi', 'false')
+    # addC.modFile('NOUT', 333)
+    # addC.modFile('TIMESTEP', 111)
     # addC.modJob(tme)
-    # addC.subJob()
+    # # addC.subJob()
 
-    # tme = '23:59:59'
-    # old = '3-resC4'
-    # new = '3-resC5'
-    # resC = addCurrents(runDir)
-    # resC.copyInpFiles(old, new)
-    # resC.copyRestartFiles(old, new)
-    # resC.modFile('NOUT', 666)
-    # resC.modFile('TIMESTEP', 444)
-    # # addP.modFile('split_n0 ', 'true')
-    # # addP.modFile('split_n0_psi', 'true')
-    # # addP.modFile('poloidal_flows', 'true')
-    # # addP.modFile('NOUT', 555)
-    # # addP.modFile('TIMESTEP', 1)
-    # resC.modJob(tme)
+    tme = '05:55:55'
+    old = '5-hyper'
+    new = '6-incSource'
+    resC = addCurrents(runDir)
+    resC.copyInpFiles(old, new)
+    resC.copyRestartFiles(old, new)
+    resC.modFile('NOUT', 222)
+    resC.modFile('TIMESTEP', 555)
+    # resC.modFile('verbose', 'true')
+    # resC.modFile('ion_viscosity', 'true', 144)
+    resC.modJob(tme)
     # resC.subJob()
 
     # tme = '23:59:59'
