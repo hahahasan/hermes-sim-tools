@@ -498,38 +498,39 @@ if __name__ == "__main__":
     nProcs = 512
     hermesVer = '/users/hm1234/scratch/hermes2/9Jan20/hermes-2'
 
-    # slabSim = slabSim('/users/hm1234/scratch/slabTCV', '2020runs',
-    #                   dateDir, 'BOUT5.inp', title=title)
-    # slabSim.setup()
-    # slabSim.modInp2('NOUT', 222)
-    # slabSim.modInp2('TIMESTEP', 111)
-    # slabSim.modInp2('ion_viscosity', 'false')
-    # # power of 3 still fast using fft but maybe more
-    # # robust to triangular instabilities)
-    # # slabSim.modInp2('nz', 243)
-    # # slabSim.modInp2('ny', 32, lineNum=18)
-    # # slabSim.modInp2('ramp_j_diamag', 1.0)
-    # slabSim.modJob(nProcs, hermesVer, tme)
-    # slabSim.subJob(shortQ=False)
+    slabSim = slabSim('/users/hm1234/scratch/slabTCV', '2020runs',
+                      dateDir, 'BOUT5.inp', title=title)
+    slabSim.setup()
+    slabSim.modInp2('NOUT', 222)
+    slabSim.modInp2('TIMESTEP', 111)
+    slabSim.modInp2('ion_viscosity', 'false')
+    slabSim.modInp2('hyper', 0.5, 148)
+    # power of 3 still fast using fft but maybe more
+    # robust to triangular instabilities)
+    # slabSim.modInp2('nz', 243)
+    # slabSim.modInp2('ny', 32, lineNum=18)
+    # slabSim.modInp2('ramp_j_diamag', 1.0)
+    slabSim.modJob(nProcs, hermesVer, tme)
+    slabSim.subJob(shortQ=False)
 
     tme = '23:59:59'
     # runDir = '/users/hm1234/scratch/slabTCV/2020runs/slab-17-01-20_104716'
     runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-24-01-20_155235'
     runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-10-02-20_100102'
     runDir = '/users/hm1234/scratch/slabTCV/2020runs/gauss-14-02-20_153923'
-    res = restartSim(runDir,)
-    old = None
-    new = '2-hyper'
-    res.copyInpFiles(old, new)
-    res.copyRestartFiles(old, new, t=-10)
-    # res.modFile('output_ddt', 'true')
-    # res.modFile('NOUT', 200)
-    # res.modFile('TIMESTEP', 50)
-    # res.modFile('ion_viscosity', 'false')
-    res.modFile('ramp_j_diamag', 1.0)
-    res.modFile('hyper', 0.1, 148)
-    res.modJob(tme)
-    res.subJob()
+    # res = restartSim(runDir,)
+    # old = None
+    # new = '2-hyper'
+    # res.copyInpFiles(old, new)
+    # res.copyRestartFiles(old, new, t=-10)
+    # # res.modFile('output_ddt', 'true')
+    # # res.modFile('NOUT', 200)
+    # # res.modFile('TIMESTEP', 50)
+    # # res.modFile('ion_viscosity', 'false')
+    # res.modFile('ramp_j_diamag', 1.0)
+    # res.modFile('hyper', 0.1, 148)
+    # res.modJob(tme)
+    # res.subJob()
 
     # runDir = '/users/hm1234/scratch/slabTCV/2020runs/sim-13-01-20_112202'
     # tme = '12:12:12'
