@@ -30,6 +30,9 @@ def replace_line(file_name, line_num, text):
     out.writelines(lines)
     out.close()
 
+def get_last_line(file_name):
+    lines = open(file_name, 'r').readlines()
+    return lines[-1].strip()
 
 def find_line(filename, lookup):
     # finds line in a file
@@ -89,7 +92,7 @@ class addToLog(logSim):
 
 class baseSim:
     def __init__(self, cluster, pathOut, pathIn, dateDir, gridFile, scanParams,
-                 hermesVer, inpFile='BOUT.inp', title='sim'):
+                 hermesVer,runScript, inpFile='BOUT.inp', title='sim'):
         os.chdir(pathOut)
         self.pathOut = pathOut
         self.pathIn = pathIn
@@ -100,6 +103,7 @@ class baseSim:
         self.title = title
         self.hermesVer = hermesVer
         self.cluster = cluster
+        self.runScript = runScript
         if self.scanParams is not None:
             self.scanNum = len(scanParams)
         else:
@@ -118,8 +122,9 @@ class baseSim:
         hermesURL = subprocess.run('git remote get-url origin'.split(),
                                      capture_output=True,
                                      text=True).stdout.strip()
+        BOUTgitID = get_last_line('BOUT_commit')
         os.chdir(currDir)
-        return hermesURL, hermesGitID
+        return hermesURL, hermesGitID, BOUTgitID
 
     def setup(self):
         self.log = logSim(self.runDir, 'log.txt')
@@ -128,15 +133,18 @@ class baseSim:
         self.log('inpFile: {}'.format(self.inpFile))
         self.log('gridFile: {}'.format(str(self.gridFile)))
         self.log('scanParams: {}'.format(str(self.scanParams)))
+        self.log('BOUT_commit: {}'.format(
+            self.getHermesGit()[2]))
         self.log('hermesInfo: {} - {}'.format(
             self.getHermesGit()[0], self.getHermesGit()[1]))
+        
         
         for i in range(self.scanNum):
             os.mkdir(str(i))
             os.system('cp {}/{} {}/BOUT.inp'.format(
                 self.pathOut, self.inpFile, i))
-            os.system('cp {}/{} {}/{}.job'.format(
-                self.pathOut, 'test.job', i, self.title))
+            os.system('cp {}/{} {}/'.format(
+                self.pathOut, self.runScript, i))
             if type(self.gridFile) == str:
                 if self.cluster == 'viking':
                     cpGridCmd = 'cp /users/hm1234/scratch/gridfiles/{} {}'.format(
@@ -145,7 +153,7 @@ class baseSim:
                     cpGridCmd = 'cp /work/e281/e281/hm1234/gridfiles/{} {}'.format(
                         self.gridFile, i)
                 elif self.cluster == 'marconi':
-                    cpGridCmd = 'cp /marconi_work/FUA33_SOLBOUT3/hmuhamme/gridfiles/{} {}'.format(
+                    cpGridCmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}'.format(
                         self.gridFile, i)
                 os.system(cpGridCmd)
         self.inpFile = 'BOUT.inp'
@@ -170,41 +178,43 @@ class baseSim:
                              lineNum,
                              '{} = {}'.format(param, value))
 
-    def modJob(self, nProcs, tme, optNodes):
+    def modJob(self, nProcs, tme, optNodes=True):
         if self.cluster == 'viking':
             self.vikingModJob(nProcs, tme, optNodes)
         elif self.cluster == 'archer':
-            self.archerModJob(nProcs, tme)
+            self.archerModJob(nProcs, tme, optNodes)
         elif self.cluster == 'marconi':
             msg = 'need to figure it oot'
 
 
-    def archerModJob(self, nProcs, tme):
-        nNodes = int(np.ceil(nProcs/24))
+    def archerModJob(self, nProcs, tme, optNodes=True):
+        if optNodes is True:
+            nodes = int(np.ceil(nProcs/24))
+            for i in range(self.scanNum):
+                os.chdir('{}/{}'.format(self.runDir, i))
+                replace_line(self.runScript,
+                             find_line(self.runScript,
+                                       'select'),
+                             '#PBS -l select={}'.format(nodes))
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
-            os.system('cp {}/job.pbs {}.pbs'.format(self.pathOut, self.title))
-            replace_line('{}.pbs'.format(self.title),
-                         find_line('{}.pbs'.format(self.title),
-                                   'select'),
-                         '#PBS -l select={}'.format(nNodes))
-            replace_line('{}.pbs'.format(self.title),
-                         find_line('{}.pbs'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    'aprun'),
                          'aprun -n {} {} -d {}/{} 2>&1 {}/{}/zzz'.format(
                              nProcs, self.hermesVer,
                              self.runDir, i,
                              self.runDir, i))
-            replace_line('{}.pbs'.format(self.title),
-                         find_line('{}.pbs'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    'jobname') + 1,
                          '#PBS -N {}-{}'.format(self.title, i))
-            replace_line('{}.pbs'.format(self.title),
-                         find_line('{}.pbs'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    'walltime'),
                          '#PBS -l walltime={}'.format(tme))
-            replace_line('{}.pbs'.format(self.title),
-                         find_line('{}.pbs'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    'PBS_O_WORKDIR') + 1,
                          'cd {}/{}'.format(self.runDir, i))
             
@@ -213,29 +223,29 @@ class baseSim:
             nodes = int(np.ceil(nProcs/40))
             for i in range(self.scanNum):
                 os.chdir('{}/{}'.format(self.runDir, i))
-                replace_line('{}.job'.format(self.title),
-                             find_line('{}.job'.format(self.title),
+                replace_line(self.runScript,
+                             find_line(self.runScript,
                                        '--nodes'),
                              '#SBATCH --nodes={}'.format(nodes))
         for i in range(self.scanNum):
             os.chdir('{}/{}'.format(self.runDir, i))
-            replace_line('{}.job'.format(self.title),
-                         find_line('{}.job'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    '--ntasks'),
                          '#SBATCH --ntasks={}'.format(nProcs))
-            replace_line('{}.job'.format(self.title),
-                         find_line('{}.job'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    'mpiexec'),
                          'mpiexec -n {} {} -d {}/{}'.format(nProcs,
                                                             self.hermesVer,
                                                             self.runDir,
                                                             i))
-            replace_line('{}.job'.format(self.title),
-                         find_line('{}.job'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    '--job-name'),
                          '#SBATCH --job-name={}-{}'.format(self.title, i))
-            replace_line('{}.job'.format(self.title),
-                         find_line('{}.job'.format(self.title),
+            replace_line(self.runScript,
+                         find_line(self.runScript,
                                    '--time'),
                          '#SBATCH --time={}'.format(tme))
 
@@ -246,9 +256,9 @@ class baseSim:
             queue = '-q short'
 
         if self.cluster == 'viking':
-            cmd = 'sbatch {} {}.job'.format(queue, self.title)
+            cmd = 'sbatch {} {}'.format(queue, self.runScript)
         elif self.cluster == 'archer':
-            cmd = 'qsub {} {}.pbs'.format(queue, self.title)
+            cmd = 'qsub {} {}'.format(queue, self.runScript)
         elif self.cluster == 'marconi':
             cmd = 'figure it oot'
 
@@ -335,4 +345,35 @@ class addSim(baseSim):
         return newString
         
         
-    
+if __name__=="__main__":
+    ###################################################
+    ##################  Archer Jobs ###################
+    ###################################################
+    # inpFile = 'BOUT.inp'
+    # pathOut = '/home/e281/e281/hm1234/hm1234/TCV2020'
+    # pathIn = 'test2'
+    # dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
+    # title = 'cfrac'
+    # scanParams = [0.02, 0.04, 0.06, 0.08]
+    # nProcs = 16
+    # tme = '00:19:00'
+    # hermesVer = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
+    # gridFile = 'newtcv2_63161_64x64_profiles_5e19.nc'
+
+    # archerSim = baseSim(cluster = 'archer',
+    #                     pathOut = pathOut,
+    #                     pathIn = pathIn,
+    #                     dateDir = dateDir,
+    #                     gridFile = gridFile,
+    #                     scanParams = scanParams,
+    #                     hermesVer = hermesVer,
+    #                     runScript = 'job.pbs',
+    #                     inpFile = 'BOUT.inp',
+    #                     title = 'newRunJobTest')
+
+    # archerSim.setup()
+    # archerSim.modInp('carbon_fraction')
+    # archerSim.modInp('NOUT', 444)
+    # archerSim.modInp('TIMESTEP', '222')
+    # archerSim.modJob(nProcs, tme, optNodes=True)
+    # archerSim.subJob(shortQ=True)
