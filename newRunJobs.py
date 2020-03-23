@@ -275,7 +275,7 @@ class multiGridSim(baseSim):
         super().setup()
         for i in range(self.scanNum):
             os.system('cp /users/hm1234/scratch/gridfiles/{} {}/{}'.format(
-                self.pathOut, self.scanParams[i], self.runDir, i))
+                self.scanParams[i], self.runDir, i))
         self.modInp('grid')
 
 
@@ -284,9 +284,10 @@ class slabSim(baseSim):
 
 
 class addSim(baseSim):
-    def __init__(self, runDir, scanIDs=[], logFile='log.txt'):
-        self.runDir = runDir
-        os.chdir(runDir)
+    def __init__(self, oldDir, addType='restart', scanIDs=[], logFile='log.txt'):
+        self.addType = addType
+        self.runDir = self.extract_rundir(oldDir)
+        os.chdir(self.runDir)
         self.scanParams = read_line(logFile, 'scanParams')
         if len(scanIDs) == 0:
             self.scanIDs = list(np.arange(len(self.scanParams)))
@@ -296,6 +297,9 @@ class addSim(baseSim):
         self.gridFile = read_line(logFile, 'gridFile')
         self.hermesVer = read_line(logFile, 'hermesVer')
         self.nProcs = read_line(logFile, 'nProcs')
+        log = addToLog('{}/{}'.format(self.runDir, logFile))
+        log('sim modified at: {}'.format(
+            datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")))
 
     def modInp(self, param, lineNum=None):
         scanParams = []
@@ -314,7 +318,7 @@ class addSim(baseSim):
                              lineNum,
                              '{} = {}'.format(param, j))
 
-    def modify_rundir(self, runDir, logFile):
+    def extract_rundir(self, runDir):
         stringSplit = list(np.roll(runDir.split('/'), -1))
         for i, j in enumerate(stringSplit):
             temp = None
@@ -328,9 +332,7 @@ class addSim(baseSim):
         newString = '/'
         for i in stringSplit[0:stringID]:
             newString += i + '/'
-        logFile = newString + logFile
-        scanID = stringSplit[stringID]
-        return logFile, scanID
+        return newString
         
         
     
