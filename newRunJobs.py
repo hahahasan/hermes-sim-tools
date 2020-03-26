@@ -6,6 +6,8 @@ import datetime
 import time
 from boutdata.restart import addvar
 from boutdata.restart import addnoise
+from boutdata.restart import create
+from boutdata.restart import addnoise
 from boutdata.restart import resizeZ
 from boutdata.restart import redistribute
 from inspect import getsource as GS
@@ -30,9 +32,11 @@ def replace_line(file_name, line_num, text):
     out.writelines(lines)
     out.close()
 
+
 def get_last_line(file_name):
     lines = open(file_name, 'r').readlines()
     return lines[-1].strip()
+
 
 def find_line(filename, lookup):
     # finds line in a file
@@ -64,7 +68,7 @@ def list_grids(densities, shotnum, machine='tcv', resolution='64x64'):
     return d_names
 
 
-class logSim:
+class LogSim:
     '''
     For logging simulation parameters
     '''
@@ -79,7 +83,7 @@ class logSim:
         self.logFile.close()
 
 
-class addToLog(logSim):
+class AddToLog(LogSim):
     '''
     For adding to the logfile when restarting sims
     '''
@@ -90,180 +94,204 @@ class addToLog(logSim):
         super().__call__(message)
 
 
-class baseSim:
-    def __init__(self, cluster, pathOut, pathIn, dateDir, gridFile, scanParams,
-                 hermesVer,runScript, inpFile='BOUT.inp', title='sim'):
-        os.chdir(pathOut)
-        self.pathOut = pathOut
-        self.pathIn = pathIn
-        self.inpFile = inpFile
-        self.gridFile = gridFile
-        self.runDir = '{}/{}/{}-{}'.format(pathOut, pathIn, title, dateDir)
-        self.scanParams = scanParams
+class BaseSim:
+    def __init__(self, cluster, path_out, path_in, date_dir, grid_file, scan_params,
+                 hermes_ver, run_script, inp_file='BOUT.inp', title='sim'):
+        os.chdir(path_out)
+        self.path_out = path_out
+        self.path_in = path_in
+        self.inp_file = inp_file
+        self.grid_file = grid_file
+        self.run_dir = '{}/{}/{}-{}'.format(path_out, path_in, title, date_dir)
+        self.scan_params = scan_params
         self.title = title
-        self.hermesVer = hermesVer
+        self.add_type = ''
+        self.hermes_ver = hermes_ver
         self.cluster = cluster
-        self.runScript = runScript
-        if self.scanParams is not None:
-            self.scanNum = len(scanParams)
+        self.run_script = run_script
+        if self.scan_params is not None:
+            self.scan_num = len(scan_params)
         else:
-            self.scanNum = 1
-        os.system('mkdir {} -p'.format(self.runDir))
-        os.chdir('{}'.format(self.runDir))
+            self.scan_num = 1
+        self.scan_IDs = list(range(self.scan_num))
+        os.system('mkdir {} -p'.format(self.run_dir))
+        os.chdir('{}'.format(self.run_dir))
 
-    def getHermesGit(self):
-        currDir = subprocess.run(['pwd', '-P'],
+    def get_hermes_git(self):
+        curr_dir = subprocess.run(['pwd', '-P'],
                                  capture_output=True,
                                  text=True).stdout.strip()
-        os.chdir(self.hermesVer[:-8])
-        hermesGitID = subprocess.run('git describe --always'.split(),
+        os.chdir(self.hermes_ver[:-8])
+        hermes_git_ID = subprocess.run('git rev-parse --short HEAD'.split(),
                                      capture_output=True,
                                      text=True).stdout.strip()
-        hermesURL = subprocess.run('git remote get-url origin'.split(),
+        hermes_URL = subprocess.run('git remote get-url origin'.split(),
                                      capture_output=True,
                                      text=True).stdout.strip()
-        BOUTgitID = get_last_line('BOUT_commit')
-        os.chdir(currDir)
-        return hermesURL, hermesGitID, BOUTgitID
+        BOUT_git_ID = get_last_line('BOUT_commit')
+        os.chdir(curr_dir)
+        return hermes_URL, hermes_git_ID, BOUT_git_ID
 
     def setup(self):
-        self.log = logSim(self.runDir, 'log.txt')
+        self.log = LogSim(self.run_dir, 'log.txt')
         self.log('cluster: {}'.format(self.cluster))
         self.log('title: {}'.format(self.title))
-        self.log('inpFile: {}'.format(self.inpFile))
-        self.log('gridFile: {}'.format(str(self.gridFile)))
-        self.log('scanParams: {}'.format(str(self.scanParams)))
+        self.log('path_out: {}'.format(self.path_out))
+        self.log('inp_file: {}'.format(self.inp_file))
+        self.log('run_script: {}'.format(self.run_script))
+        self.log('grid_file: {}'.format(str(self.grid_file)))
+        self.log('scan_params: {}'.format(str(self.scan_params)))
         self.log('BOUT_commit: {}'.format(
-            self.getHermesGit()[2]))
-        self.log('hermesInfo: {} - {}'.format(
-            self.getHermesGit()[0], self.getHermesGit()[1]))
+            self.get_hermes_git()[2]))
+        self.log('hermes_info: {} - {}'.format(
+            self.get_hermes_git()[0], self.get_hermes_git()[1]))
         
         
-        for i in range(self.scanNum):
+        for i in self.scan_IDs:
             os.mkdir(str(i))
             os.system('cp {}/{} {}/BOUT.inp'.format(
-                self.pathOut, self.inpFile, i))
+                self.path_out, self.inp_file, i))
             os.system('cp {}/{} {}/'.format(
-                self.pathOut, self.runScript, i))
-            if type(self.gridFile) == str:
+                self.path_out, self.run_script, i))
+            if type(self.grid_file) == str:
                 if self.cluster == 'viking':
-                    cpGridCmd = 'cp /users/hm1234/scratch/gridfiles/{} {}'.format(
-                        self.gridFile, i)
+                    cp_grid_cmd = 'cp /users/hm1234/scratch/gridfiles/{} {}'.format(
+                        self.grid_file, i)
                 elif self.cluster == 'archer':
-                    cpGridCmd = 'cp /work/e281/e281/hm1234/gridfiles/{} {}'.format(
-                        self.gridFile, i)
+                    cp_grid_cmd = 'cp /work/e281/e281/hm1234/gridfiles/{} {}'.format(
+                        self.grid_file, i)
                 elif self.cluster == 'marconi':
-                    cpGridCmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}'.format(
-                        self.gridFile, i)
-                os.system(cpGridCmd)
-        self.inpFile = 'BOUT.inp'
-        if self.gridFile is not None:
-            self.modInp(param='grid', value=self.gridFile)
+                    cp_grid_cmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}'.format(
+                        self.grid_file, i)
+                os.system(cp_grid_cmd)
+        self.inp_file = 'BOUT.inp'
+        if self.grid_file is not None:
+            self.mod_inp(param='grid', value=self.grid_file)
 
-    def modInp(self, param, value=None, lineNum=None):
-        if lineNum is None:
-            lineNum = find_line('{}/0/{}'.format(
-                self.runDir, self.inpFile),
-                                param)
+    def mod_inp(self, param, value=None, line_num=None):
+        if line_num is None:
+            line_num = find_line('{}/0/{}'.format(
+                self.run_dir, self.inp_file),
+                                 param)
+        scan_params = []
+        for i in self.scan_IDs:
+            scan_params.append(self.scan_params[i])
         if value is None:
-            for i, j in enumerate(self.scanParams):
-                os.chdir('{}/{}'.format(self.runDir, i))
-                replace_line('{}'.format(self.inpFile),
-                             lineNum,
+            for i, j in enumerate(scan_params):
+                os.chdir('{}/{}/{}'.format(
+                    self.run_dir, i, self.add_type))
+                replace_line('{}'.format(self.inp_file),
+                             line_num,
                              '{} = {}'.format(param, j))
+            self.log('modified: {}, to {}'.format(param, scan_params))
         else:
-            for i in range(self.scanNum):
-                os.chdir('{}/{}'.format(self.runDir, i))
-                replace_line('{}'.format(self.inpFile),
-                             lineNum,
+            for i in self.scan_IDs:
+                os.chdir('{}/{}/{}'.format(
+                    self.run_dir, i, self.add_type))
+                replace_line('{}'.format(self.inp_file),
+                             line_num,
                              '{} = {}'.format(param, value))
+            self.log('modified: {}, to {}'.format(param, value))
 
-    def modJob(self, nProcs, tme, optNodes=True):
+    def mod_job(self, n_procs, tme, opt_nodes=True):
         if self.cluster == 'viking':
-            self.vikingModJob(nProcs, tme, optNodes)
+            self.viking_mod_job(n_procs, tme, opt_nodes)
         elif self.cluster == 'archer':
-            self.archerModJob(nProcs, tme, optNodes)
+            self.archer_mod_job(n_procs, tme, opt_nodes)
         elif self.cluster == 'marconi':
             msg = 'need to figure it oot'
 
 
-    def archerModJob(self, nProcs, tme, optNodes=True):
-        if optNodes is True:
-            nodes = int(np.ceil(nProcs/24))
-            for i in range(self.scanNum):
-                os.chdir('{}/{}'.format(self.runDir, i))
-                replace_line(self.runScript,
-                             find_line(self.runScript,
+    def archer_mod_job(self, n_procs, tme, opt_nodes=True):
+        if opt_nodes is True:
+            nodes = int(np.ceil(n_procs/24))
+            for i in self.scan_IDs:
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
                                        'select'),
                              '#PBS -l select={}'.format(nodes))
-        for i in range(self.scanNum):
-            os.chdir('{}/{}'.format(self.runDir, i))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
-                                   'aprun'),
-                         'aprun -n {} {} -d {}/{} 2>&1 {}/{}/zzz'.format(
-                             nProcs, self.hermesVer,
-                             self.runDir, i,
-                             self.runDir, i))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
                                    'jobname') + 1,
                          '#PBS -N {}-{}'.format(self.title, i))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
+            replace_line(self.run_script,
+                         find_line(self.run_script,
                                    'walltime'),
                          '#PBS -l walltime={}'.format(tme))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
+            replace_line(self.run_script,
+                         find_line(self.run_script,
                                    'PBS_O_WORKDIR') + 1,
-                         'cd {}/{}'.format(self.runDir, i))
+                         'cd {}/{}'.format(self.run_dir, i))
+        if self.add_type == '':
+            run_command = 'aprun -n {} {} -d {}/{} 2>&1 {}/{}/zzz'.format(
+                             n_procs, self.hermes_ver,
+                             self.run_dir, i,
+                             self.run_dir, i)
+        else:
+            run_command = 'aprun -n {} {} -d {}/{}/{} restart 2>&1 > {}/{}/{}/zzz'.format(
+                             n_procs, self.hermes_ver,
+                             self.run_dir, i, self.add_type,
+                             self.run_dir, i, self.add_type)
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   'aprun'),
+                         run_command)
             
-    def vikingModJob(self, nProcs, tme, optNodes=True):
-        if optNodes is True:
-            nodes = int(np.ceil(nProcs/40))
-            for i in range(self.scanNum):
-                os.chdir('{}/{}'.format(self.runDir, i))
-                replace_line(self.runScript,
-                             find_line(self.runScript,
+    def viking_mod_job(self, n_procs, tme, opt_nodes=True):
+        if opt_nodes is True:
+            nodes = int(np.ceil(n_procs/40))
+            for i in self.scan_IDs:
+                os.chdir('{}/{}'.format(self.run_dir, i))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
                                        '--nodes'),
                              '#SBATCH --nodes={}'.format(nodes))
-        for i in range(self.scanNum):
-            os.chdir('{}/{}'.format(self.runDir, i))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
                                    '--ntasks'),
-                         '#SBATCH --ntasks={}'.format(nProcs))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
-                                   'mpiexec'),
-                         'mpiexec -n {} {} -d {}/{}'.format(nProcs,
-                                                            self.hermesVer,
-                                                            self.runDir,
-                                                            i))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
+                         '#SBATCH --ntasks={}'.format(n_procs))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
                                    '--job-name'),
                          '#SBATCH --job-name={}-{}'.format(self.title, i))
-            replace_line(self.runScript,
-                         find_line(self.runScript,
+            replace_line(self.run_script,
+                         find_line(self.run_script,
                                    '--time'),
                          '#SBATCH --time={}'.format(tme))
+        if self.add_type == '':
+            run_command = 'mpiexec -n {} {} -d {}/{}'.format(
+                             n_procs, self.hermes_ver, self.run_dir, i)
+        else:
+            run_command = 'mpiexec -n {} {} -d {}/{}/{} restart'.format(
+                             n_procs, self.hermes_ver, self.run_dir, i, self.add_type)
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            replace_line(self.run_script,
+                         find_line(self.run_script, 'mpiexec'),
+                         run_command)
 
-    def subJob(self, shortQ=False):
+    def sub_job(self, shortQ=False):
         if shortQ is False:
             queue = ''
         elif shortQ is True:
             queue = '-q short'
 
         if self.cluster == 'viking':
-            cmd = 'sbatch {} {}'.format(queue, self.runScript)
+            cmd = 'sbatch {} {}'.format(queue, self.run_script)
         elif self.cluster == 'archer':
-            cmd = 'qsub {} {}'.format(queue, self.runScript)
+            cmd = 'qsub {} {}'.format(queue, self.run_script)
         elif self.cluster == 'marconi':
             cmd = 'figure it oot'
 
-        for i in range(self.scanNum):
-            os.chdir('{}/{}'.format(self.runDir, i))
+        for i in range(self.scan_num):
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
             cmdInfo = subprocess.run(cmd.split(),
                                      capture_output=True,
                                      text=True)
@@ -273,107 +301,148 @@ class baseSim:
                 sys.exit(cmdInfo.stderr)
 
 
-
-class multiGridSim(baseSim):
-    def __init__(self, cluster, pathOut, pathIn, dateDir, scanParams,
-                 hermesVer, inpFile='BOUT.inp', title='sim'):
-        super().__init__(cluster, pathOut, pathIn, dateDir, 'blah',
-                         scanParams, hermesVer, inpFile, title)
-        self.gridFile = self.scanParams
-
-    def setup(self):
-        super().setup()
-        for i in range(self.scanNum):
-            os.system('cp /users/hm1234/scratch/gridfiles/{} {}/{}'.format(
-                self.scanParams[i], self.runDir, i))
-        self.modInp('grid')
-
-
-class slabSim(baseSim):
+class StartSim(BaseSim):
     pass
 
 
-class addSim(baseSim):
-    def __init__(self, oldDir, addType='restart', scanIDs=[], logFile='log.txt'):
-        self.addType = addType
-        self.runDir = self.extract_rundir(oldDir)
-        os.chdir(self.runDir)
-        self.scanParams = read_line(logFile, 'scanParams')
-        if len(scanIDs) == 0:
-            self.scanIDs = list(np.arange(len(self.scanParams)))
-        # self.scanNum = len(self.scanParams)
+class MultiGridSim(BaseSim):
+    def __init__(self, cluster, path_out, path_in, date_dir, scan_params,
+                 hermes_ver, run_script, inp_file='BOUT.inp', title='sim'):
+        super().__init__(cluster, path_out, path_in, date_dir, 'blah',
+                         scan_params, hermes_ver, run_script, inp_file, title)
+        self.grid_file = self.scan_params
+
+    def setup(self):
+        super().setup()
+        for i in range(self.scan_num):
+            os.system('cp /users/hm1234/scratch/gridfiles/{} {}/{}'.format(
+                self.scan_params[i], self.run_dir, i))
+        self.mod_inp('grid')
+
+
+class SlabSim(BaseSim):
+    pass
+
+
+class AddSim(BaseSim):
+    def __init__(self, old_dir, add_type='restart', scan_IDs=[], logFile='log.txt', **kwargs):
+        try:
+            self.t = kwargs['t']
+        except(KeyError):
+            self.t = None
+        self.add_type = add_type
+        self.old_dir = old_dir
+        self.run_dir = self.extract_rundir(old_dir)[0]
+        os.chdir(self.run_dir)
+        self.scan_params = read_line(logFile, 'scan_params')
+        if len(scan_IDs) == 0:
+            self.scan_IDs = list(range(len(self.scan_params)))
+        # self.scan_num = len(self.scan_params)
         self.title = read_line(logFile, 'title')
-        self.inpFile = 'BOUT.inp'
-        self.gridFile = read_line(logFile, 'gridFile')
-        self.hermesVer = read_line(logFile, 'hermesVer')
-        self.nProcs = read_line(logFile, 'nProcs')
-        log = addToLog('{}/{}'.format(self.runDir, logFile))
+        self.inp_file = 'BOUT.inp'
+        self.run_script = read_line(logFile, 'run_script')
+        self.grid_file = read_line(logFile, 'grid_file')
+        self.hermes_ver = read_line(logFile, 'hermes_ver')
+        self.n_procs = read_line(logFile, 'n_procs')
+        self.path_out = read_line(logFile, 'path_out')
+        log = AddToLog('{}/{}'.format(self.run_dir, logFile))
         log('sim modified at: {}'.format(
             datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")))
+        log('new_sim_type: {}'.format(add_type))
+        for i in self.scan_IDs:
+            os.chdir('{}/{}'.format(self.run_dir, i))
+            os.system('mkdir -p {}'.format(add_type))
 
-    def modInp(self, param, lineNum=None):
-        scanParams = []
-        for i in self.scanIDs:
-            scanParams.append(self.scanParams[i])
-        for i in self.scanIDs:
-            os.chdir('{}/{}/{}'.format(self.runDir, i, self.addType))
-            if lineNum is None:
-                lineNum = find_line('{}/{}/{}/{}'.format(
-                    self.runDir, i, self.addType, self.inpFile),
-                                    param)
-            else:
-                lineNum = lineNum
-            for j in scanParams:
-                replace_line('{}'.format(self.inpFile),
-                             lineNum,
-                             '{} = {}'.format(param, j))
+    def setup(self, )
 
-    def extract_rundir(self, runDir):
-        stringSplit = list(np.roll(runDir.split('/'), -1))
-        for i, j in enumerate(stringSplit):
+    def extract_rundir(self, run_dir):
+        string_split = list(np.roll(run_dir.split('/'), -1))
+        for i, j in enumerate(string_split):
             temp = None
             try:
-                temp = type(eval(j)) 
+                temp = type(eval(j))
             except(NameError, SyntaxError):
                 pass
             if temp is int:
                 stringID = i
                 break
-        newString = '/'
-        for i in stringSplit[0:stringID]:
-            newString += i + '/'
-        return newString
-        
+        new_string = '/'
+        run_dir = new_string + new_string.join(string_split[:stringID])
+        old_type = new_string + new_string.join(string_split[stringID+1:])
+        if old_type in [new_string, 2*new_string]:
+            old_type = ''
+        return run_dir, old_type
+
+    def copy_new_inp(self, inpName):
+        for i in self.scan_IDs:
+            os.system('cp {}/{} {}/{}/{}/BOUT.inp'.format(
+                self.path_out, inpName, self.run_dir, i, self.add_type))
+
+    def copy_inp_files(self, add_type=self.add_type):
+        for i in self.scan_IDs:
+            os.chdir('{}/{}'.format(self.run_dir, i))
+            if type(self.grid_file) == list:
+                os.system('cp {} {}'.format(self.grid_file[i], add_type))
+            elif self.grid_file is None:
+                pass
+            else:
+                os.system('cp {} {}'.format(self.grid_file, add_type))
+            os.system('cp {} {}/{}'.format(self.run_script, add_type,
+                                           self.run_script))
+            cmd = 'cp {}/{} {}'.format(self.old_dir, self.inp_file, add_type)
+            os.system(cmd)
+
+    def copy_restart_files(self, old_dir=None, add_type='restart', t=None):
+        if t is None:
+            if old_dir is None:
+                cmd = 'cp BOUT.restart.* {}'.format(add_type)
+            else:
+                cmd = 'cp {}/BOUT.restart.* {}'.format(old_dir, add_type)
+            for i in self.scan_IDs:
+                os.chdir('{}/{}'.format(self.run_dir, i))
+                os.system(cmd)
+        else:
+            for i in self.scan_IDs:
+                if old_dir is None:
+                    os.chdir('{}/{}'.format(self.run_dir, i))
+                else:
+                    os.chdir('{}/{}/{}'.format(
+                        self.run_dir, i, old_dir))
+                create(final=t, path="./", output='{}/{}/{}'.format(
+                    self.run_dir, i, add_type))
+    
+
         
 if __name__=="__main__":
     ###################################################
     ##################  Archer Jobs ###################
     ###################################################
-    # inpFile = 'BOUT.inp'
-    # pathOut = '/home/e281/e281/hm1234/hm1234/TCV2020'
-    # pathIn = 'test2'
-    # dateDir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
+    # inp_file = 'BOUT.inp'
+    # path_out = '/home/e281/e281/hm1234/hm1234/TCV2020'
+    # path_in = 'test2'
+    # date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     # title = 'cfrac'
-    # scanParams = [0.02, 0.04, 0.06, 0.08]
-    # nProcs = 16
+    # scan_params = [0.02, 0.04, 0.06, 0.08]
+    # n_procs = 16
     # tme = '00:19:00'
-    # hermesVer = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
-    # gridFile = 'newtcv2_63161_64x64_profiles_5e19.nc'
+    # hermes_ver = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
+    # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    # archerSim = baseSim(cluster = 'archer',
-    #                     pathOut = pathOut,
-    #                     pathIn = pathIn,
-    #                     dateDir = dateDir,
-    #                     gridFile = gridFile,
-    #                     scanParams = scanParams,
-    #                     hermesVer = hermesVer,
-    #                     runScript = 'job.pbs',
-    #                     inpFile = 'BOUT.inp',
+    # archerSim = StartSim(cluster = 'archer',
+    #                     path_out = path_out,
+    #                     path_in = path_in,
+    #                     date_dir = date_dir,
+    #                     grid_file = grid_file,
+    #                     scan_params = scan_params,
+    #                     hermes_ver = hermes_ver,
+    #                     run_script = 'job.pbs',
+    #                     inp_file = 'BOUT.inp',
     #                     title = 'newRunJobTest')
 
     # archerSim.setup()
-    # archerSim.modInp('carbon_fraction')
-    # archerSim.modInp('NOUT', 444)
-    # archerSim.modInp('TIMESTEP', '222')
-    # archerSim.modJob(nProcs, tme, optNodes=True)
-    # archerSim.subJob(shortQ=True)
+    # archerSim.mod_inp('carbon_fraction')
+    # archerSim.mod_inp('NOUT', 444)
+    # archerSim.mod_inp('TIMESTEP', '222')
+    # archerSim.mod_job(n_procs, tme, opt_nodes=True)
+    # archerSim.sub_job(shortQ=True)
+    a = 1
