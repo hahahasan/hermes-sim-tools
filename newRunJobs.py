@@ -74,21 +74,21 @@ class LogSim:
     '''
     def __init__(self, location, filename):
         self.fileName = '{}/{}'.format(location, filename)
-        self.logFile = open(self.fileName, 'w+')
-        self.logFile.close()
+        self.log_file = open(self.fileName, 'w+')
+        self.log_file.close()
 
     def __call__(self, message):
-        self.logFile = open(self.fileName, 'a+')
-        self.logFile.write('{}\r\n'.format(message))
-        self.logFile.close()
+        self.log_file = open(self.fileName, 'a+')
+        self.log_file.write('{}\r\n'.format(message))
+        self.log_file.close()
 
 
 class AddToLog(LogSim):
     '''
     For adding to the logfile when restarting sims
     '''
-    def __init__(self, logFile):
-        self.fileName = logFile
+    def __init__(self, log_file):
+        self.fileName = log_file
 
     def __call__(self, message):
         super().__call__(message)
@@ -325,35 +325,38 @@ class SlabSim(BaseSim):
 
 
 class AddSim(BaseSim):
-    def __init__(self, old_dir, add_type='restart', scan_IDs=[], logFile='log.txt', **kwargs):
+    def __init__(self, run_dir, scan_IDs=[], log_file='log.txt', **kwargs):
         try:
             self.t = kwargs['t']
         except(KeyError):
             self.t = None
-        self.add_type = add_type
-        self.old_dir = old_dir
-        self.run_dir = self.extract_rundir(old_dir)[0]
+        self.run_dir = self.extract_rundir(run_dir)[0]
+        self.old_type = self.extract_rundir(run_dir)[1]
+        self.add_type = 'restart'
         os.chdir(self.run_dir)
-        self.scan_params = read_line(logFile, 'scan_params')
+        self.scan_params = read_line(log_file, 'scan_params')
         if len(scan_IDs) == 0:
             self.scan_IDs = list(range(len(self.scan_params)))
         # self.scan_num = len(self.scan_params)
-        self.title = read_line(logFile, 'title')
+        self.title = read_line(log_file, 'title')
         self.inp_file = 'BOUT.inp'
-        self.run_script = read_line(logFile, 'run_script')
-        self.grid_file = read_line(logFile, 'grid_file')
-        self.hermes_ver = read_line(logFile, 'hermes_ver')
-        self.n_procs = read_line(logFile, 'n_procs')
-        self.path_out = read_line(logFile, 'path_out')
-        log = AddToLog('{}/{}'.format(self.run_dir, logFile))
-        log('sim modified at: {}'.format(
+        self.run_script = read_line(log_file, 'run_script')
+        self.grid_file = read_line(log_file, 'grid_file')
+        self.hermes_ver = read_line(log_file, 'hermes_ver')
+        self.n_procs = read_line(log_file, 'n_procs')
+        self.path_out = read_line(log_file, 'path_out') # do we really need this???
+        self.log = AddToLog('{}/{}'.format(self.run_dir, log_file))
+        self.log('sim modified at: {}'.format(
             datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")))
-        log('new_sim_type: {}'.format(add_type))
+
+    def setup(self, old_type='', new_type='restart'):
+        self.add_type = new_type
+        self.log('new_sim_type: {}'.format(new_type))
         for i in self.scan_IDs:
             os.chdir('{}/{}'.format(self.run_dir, i))
-            os.system('mkdir -p {}'.format(add_type))
-
-    def setup(self, )
+            os.system('mkdir -p {}'.format(new_type))
+        self.copy_inp_files(old_type, new_type)
+        self.copy_restart_files(old_type, new_type)
 
     def extract_rundir(self, run_dir):
         string_split = list(np.roll(run_dir.split('/'), -1))
@@ -366,53 +369,76 @@ class AddSim(BaseSim):
             if temp is int:
                 stringID = i
                 break
+            elif temp is None:
+                old_type = ''
+                return run_dir, old_type
         new_string = '/'
         run_dir = new_string + new_string.join(string_split[:stringID])
         old_type = new_string + new_string.join(string_split[stringID+1:])
         if old_type in [new_string, 2*new_string]:
             old_type = ''
-        return run_dir, old_type
+        return run_dir, old_type.strip('/')
 
     def copy_new_inp(self, inpName):
         for i in self.scan_IDs:
             os.system('cp {}/{} {}/{}/{}/BOUT.inp'.format(
                 self.path_out, inpName, self.run_dir, i, self.add_type))
 
-    def copy_inp_files(self, add_type=self.add_type):
+    def copy_inp_files(self, old_type='', new_type='restart'):
+        if len(old_type) == 0:
+            old_type = '.'
         for i in self.scan_IDs:
             os.chdir('{}/{}'.format(self.run_dir, i))
             if type(self.grid_file) == list:
-                os.system('cp {} {}'.format(self.grid_file[i], add_type))
+                os.system('cp {} {}'.format(self.grid_file[i], new_type))
             elif self.grid_file is None:
                 pass
             else:
-                os.system('cp {} {}'.format(self.grid_file, add_type))
-            os.system('cp {} {}/{}'.format(self.run_script, add_type,
+                os.system('cp {} {}'.format(self.grid_file, new_type))
+            os.system('cp {} {}/{}'.format(self.run_script, new_type,
                                            self.run_script))
-            cmd = 'cp {}/{} {}'.format(self.old_dir, self.inp_file, add_type)
+            cmd = 'cp {}/{} {}'.format(old_type, self.inp_file, new_type)
             os.system(cmd)
 
-    def copy_restart_files(self, old_dir=None, add_type='restart', t=None):
+    def copy_restart_files(self, old_type='', new_type='restart', t=None):
+        if len(old_type) == 0:
+            old_type = '.'
         if t is None:
-            if old_dir is None:
-                cmd = 'cp BOUT.restart.* {}'.format(add_type)
-            else:
-                cmd = 'cp {}/BOUT.restart.* {}'.format(old_dir, add_type)
+            cmd = 'cp {}/BOUT.restart.* {}'.format(old_type, new_type)
             for i in self.scan_IDs:
                 os.chdir('{}/{}'.format(self.run_dir, i))
                 os.system(cmd)
         else:
             for i in self.scan_IDs:
-                if old_dir is None:
-                    os.chdir('{}/{}'.format(self.run_dir, i))
-                else:
-                    os.chdir('{}/{}/{}'.format(
-                        self.run_dir, i, old_dir))
-                create(final=t, path="./", output='{}/{}/{}'.format(
-                    self.run_dir, i, add_type))
-    
+                os.chdir('{}/{}/{}'.format(
+                    self.run_dir, i, old_type))
+                create(final=t, path='./', output='{}/{}/{}'.format(
+                    self.run_dir, i, new_type))
 
-        
+    def redistributeProcs(self, old_type, new_type, npes):
+        self.copy_inp_files(old_type, new_type)
+        for i in self.scan_IDs:
+            os.chdir('{}/{}'.format(self.run_dir, i))
+            redistribute(npes=npes, path=old_type, output=new_type)
+        self.n_procs = npes
+
+
+class addNeutrals(AddSim):
+    def addVar(self, Nn=0.1, Pn=0.05):
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            addvar('Nn', Nn)
+            addvar('Pn', Pn)
+
+
+class addCurrents(AddSim):
+    pass
+
+
+class restartSim(AddSim):
+    pass
+
+
 if __name__=="__main__":
     ###################################################
     ##################  Archer Jobs ###################
