@@ -146,7 +146,6 @@ class BaseSim:
         self.log('hermes_info: {} - {}'.format(
             self.get_hermes_git()[0], self.get_hermes_git()[1]))
         self.log('hermes_ver: {}'.format(self.hermes_ver))
-        self.log('n_procs: {}'.format(self.n_procs))
         
         for i in self.scan_IDs:
             os.system('mkdir -p {}'.format(i))
@@ -178,17 +177,19 @@ class BaseSim:
             line_num = find_line('{}/0/{}'.format(
                 self.run_dir, self.inp_file),
                                  param)
-        scan_params = []
-        for i in self.scan_IDs:
-            scan_params.append(self.scan_params[i])
+        # scan_params = []
+        # for i in self.scan_IDs:
+        #     scan_params.append(self.scan_params[i])
         if value is None:
-            for i, j in enumerate(scan_params):
+            # for i, j in enumerate(scan_params):
+            for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
                     self.run_dir, i, self.add_type))
                 replace_line('{}'.format(self.inp_file),
                              line_num,
-                             '{} = {}'.format(param, j))
-            self.log('modified: {}, to {}'.format(param, scan_params))
+                             '{} = {}'.format(param, self.scan_params[i]))
+                self.log('modified: {}, to {}'.format(
+                    param, [self.scan_params[i] for i in self.scan_IDs]))
         else:
             for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
@@ -199,6 +200,7 @@ class BaseSim:
             self.log('modified: {}, to {}'.format(param, value))
 
     def mod_job(self, n_procs, tme, opt_nodes=True):
+        self.log('n_procs: {}'.format(n_procs))
         if self.cluster == 'viking':
             self.viking_mod_job(n_procs, tme, opt_nodes)
         elif self.cluster == 'archer':
@@ -372,6 +374,7 @@ class AddSim(BaseSim):
             os.system('mkdir -p {}'.format(new_type))
         self.copy_inp_files(old_type, new_type)
         self.copy_restart_files(old_type, new_type)
+        self.title = new_type
 
     def extract_rundir(self, run_dir):
         string_split = list(np.roll(run_dir.split('/'), -1))
@@ -466,7 +469,7 @@ if __name__=="__main__":
     # scan_params = [0.02, 0.04, 0.06, 0.08]
     grids = list_grids(list(range(1,11)), 63161, 'tcv3', '64x64')
     n_procs = 128
-    tme = '00:19:00'
+    tme = '02:22:22'
     hermes_ver = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
@@ -481,9 +484,13 @@ if __name__=="__main__":
     #                          title = 'gridTest')
 
     # archerSim.setup()
+    # archerSim.mod_inp('NOUT', 222)
+    # archerSim.mod_inp('TIMESTEP', 444)
     # archerSim.mod_inp('type', 'none', 221)
     # archerSim.mod_inp('j_diamag', 'false')
     # archerSim.mod_inp('j_par', 'false')
+    # archerSim.mod_inp('ion_viscosity', 'false')
+    # archerSim.mod_inp('radial_buffers', 'false')
     # archerSim.mod_job(n_procs, tme, opt_nodes=True)
     # archerSim.sub_job()
 
@@ -505,16 +512,31 @@ if __name__=="__main__":
     # archerSim.mod_job(n_procs, tme, opt_nodes=True)
     # archerSim.sub_job(shortQ=True)
     
-    run_dir = '/home/e281/e281/hm1234/hm1234/TCV2020/test2/gridTest-28-03-20_114617'
-    addN = AddNeutrals(run_dir = run_dir,
-                       scan_IDs = [6, 7, 8, 9])
-    addN.setup(new_type = '2-addN')
-    addN.mod_inp('TIMESTEP', 111)
-    addN.mod_inp('NOUT', 333)
-    addN.mod_inp('ion_viscosity', 'false')
-    addN.mod_inp('type', 'mixed', 221)
-    addN.add_var(Nn=0.04, Pn=0.02)
-    tme = '06:66:66'
-    addN.mod_job(n_procs, tme)
-    addN.sub_job()
+    #run_dir = '/home/e281/e281/hm1234/hm1234/TCV2020/test2/gridTest-28-03-20_181830'
+    run_dir = '/work/e281/e281/hm1234/TCV2020/test2/gridTest-29-03-20_140253'
+    
+    # addN = AddNeutrals(run_dir = run_dir,
+    #                    scan_IDs = [3,4,5,6,7,8,9])
+    # addN.setup(new_type = '2-addN')
+    # addN.mod_inp('TIMESTEP', 111)
+    # addN.mod_inp('NOUT', 333)
+    # addN.mod_inp('type', 'mixed', 221)
+    # addN.add_var(Nn=0.04, Pn=0.02)
+    # tme = '06:66:66'
+    # addN.mod_job(n_procs, tme)
+    # addN.sub_job()
+
+    addC = AddCurrents(run_dir = run_dir,
+                       scan_IDs = [3, 4, 5, 6, 7, 8, 9])
+    addC.setup(old_type='2-addN', new_type='3-addC')
+    addC.scan_params=grids
+    addC.copy_new_inp('BOUT3.inp')
+    addC.mod_inp('grid')
+    addC.mod_inp('j_par', 'true')
+    addC.mod_inp('j_diamag', 'true')
+    addC.mod_inp('TIMESTEP', 1)
+    addC.mod_inp('NOUT', 333)
+    tme = '23:59:59'
+    addC.mod_job(n_procs, tme)
+    addC.sub_job()
     
