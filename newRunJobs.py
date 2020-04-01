@@ -418,10 +418,10 @@ class AddSim(BaseSim):
             cmd = 'cp {}/{} {}'.format(old_type, self.inp_file, new_type)
             os.system(cmd)
 
-    def copy_restart_files(self, old_type='', new_type='restart', t=None):
+    def copy_restart_files(self, old_type='', new_type='restart', t=self.t):
         if len(old_type) == 0:
             old_type = '.'
-        if t is None:
+        if self.t is None:
             cmd = 'cp {}/BOUT.restart.* {}'.format(old_type, new_type)
             for i in self.scan_IDs:
                 os.chdir('{}/{}'.format(self.run_dir, i))
@@ -430,10 +430,10 @@ class AddSim(BaseSim):
             for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
                     self.run_dir, i, old_type))
-                create(final=t, path='./', output='{}/{}/{}'.format(
+                create(final=self.t, path='./', output='{}/{}/{}'.format(
                     self.run_dir, i, new_type))
 
-    def redistributeProcs(self, old_type, new_type, npes):
+    def redistribute_procs(self, old_type, new_type, npes):
         self.copy_inp_files(old_type, new_type)
         for i in self.scan_IDs:
             os.chdir('{}/{}'.format(self.run_dir, i))
@@ -457,10 +457,34 @@ class RestartSim(AddSim):
     pass
 
 
-if __name__=="__main__":
-    ###################################################
-    ##################  Archer Jobs ###################
-    ###################################################
+class AddTurbulence(AddSim):
+    def setup(self):
+        raise AttributeError("Turbulence sims require unique setup \n"+
+                             "try the add_turb() function")
+
+    def add_turb(self, old_type, new_type, npes=None, MZ=64,
+                 param='Vort', p_scale=1e-5, multiply=True):
+        if npes is not None:
+            temp_dir = 'temp-turb'
+            self.redistribute_procs(old_type, new_type, npes)
+            old_type = temp_dir
+        self.copy_inp_files(old_type, new_type)
+        for i in self.scan_IDs:
+            os.chdir('{}/{}'.format(self.run_dir, i))
+            resizeZ(newNz=MZ, path=old_type, output=new_type)
+            addnoise(path=new_type, var=param, scale=p_scale)
+        self.mod_inp('nz', MZ)
+        if npes is not None:
+            for i in self.scan_IDs:
+                os.chdir('{}/{}'.format(self.run_dir, i))
+                os.system('rm -rf {}'.format(temp_dir))
+
+
+class StartFromOldSim(AddSim):
+    pass
+
+
+def archerMain():
     inp_file = 'BOUT2.inp'
     path_out = '/home/e281/e281/hm1234/hm1234/TCV2020'
     path_in = 'test2'
@@ -539,4 +563,21 @@ if __name__=="__main__":
     tme = '23:59:59'
     addC.mod_job(n_procs, tme)
     addC.sub_job()
-    
+
+
+def vikingMain():
+    print('viking')
+
+
+def marconiMain():
+    print('marconi')
+
+if __name__ == "__main__":
+    hostname = os.uname()[1]
+
+    if 'viking' in hostname:
+        vikingMain()
+    elif 'eslogin' in hostname:
+        archerMain()
+    else:
+        marconiMain()

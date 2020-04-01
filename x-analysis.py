@@ -113,8 +113,8 @@ class squashData:
     def __init__(self, dataDir, logFile='log.txt', dataDirName='data'):
         self.dataDir = dataDir
         os.chdir(dataDir)
-        self.gridFile = read_line(logFile, 'gridFile')
-        self.scanParams = read_line(logFile, 'scanParams')
+        self.gridFile = read_line(logFile, 'grid_file')
+        self.scanParams = read_line(logFile, 'scan_params')
         self.scanNum = len(self.scanParams)
         self.subDirs = []
         for i in range(self.scanNum):
@@ -1295,6 +1295,11 @@ if __name__ == "__main__":
 
     qlabels = ['Telim', 'Ne']
 
+    x = squashData('/home/hm1234/Documents/Project/archer/test2/gridTest-28-03-20_181830/')
+    x.saveData()
+    x = squashData('/home/hm1234/Documents/Project/archer/test2/gridTest-29-03-20_140253/')
+    x.saveData()
+
     # # d = newDScan
     # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
@@ -1312,7 +1317,7 @@ if __name__ == "__main__":
     # vd3.saveData()
 
     # slab = analyse('/users/hm1234/scratch/slabTCV/test/slab-29-11-19_170638')
-    hdg = analyse('/users/hm1234/scratch/newTCV2/hdscan/hdg-02-12-19_172620')
+    # hdg = analyse('/users/hm1234/scratch/newTCV2/hdscan/hdg-02-12-19_172620')
     # hdg.saveData()
 
     # vd = squashData('/users/hm1234/scratch/newTCV/gridscan2/grid-13-09-19_153544')
