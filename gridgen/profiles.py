@@ -8,6 +8,12 @@ import os
 import matplotlib.pyplot as plt
 import colorsys
 
+def list_grids(densities, shotnum, machine='tcv', resolution='64x64'):
+    d_names = []
+    for d in densities:
+        d_names.append(f'{machine}_{shotnum}_{resolution}_profiles_{d}e19.nc')
+    return d_names
+
 
 def getDistinctColors(n):
     huePartition = 1.0/(n+1)
@@ -172,9 +178,9 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    shot = 63161
+    shot = 63127
     dimension = '64x64'
-    baseGrid = 'tcv_{}_extendedPsi_{}.nc'.format(shot, dimension)
+    baseGrid = 'tcv3_{}_{}.nc'.format(shot, dimension)
 
     # baseGrid = 'test.nc'
 
@@ -187,7 +193,7 @@ if __name__ == "__main__":
     densities = [5.8, 6.5, 7.3, 8, 8.7, 9.3]
     densities = [8.9, 9.6, 10.2, 11, 12]
     densities = [9.9, 10.5, 11, 12, 13]
-    densities = [1,2,3,4,5,6,7,8,9,10]
+    densities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     pedBase = 0.2
     offsets = []
@@ -197,7 +203,7 @@ if __name__ == "__main__":
         offset = 0.02*d
         offsets.append(offset)
         pedestals.append((0.2*d)-offset)
-        gridFiles.append('tcv_{}_extendedPsi_{}_profiles_{}e19.nc'.format(
+        gridFiles.append('tcv3_{}_{}_profiles_{}e19.nc'.format(
             shot, dimension, d))
 
     # offsets = [0.02*1.2]

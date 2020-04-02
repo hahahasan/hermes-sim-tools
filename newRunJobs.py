@@ -472,3 +472,9 @@ if __name__=="__main__":
     # archerSim.mod_job(n_procs, tme, opt_nodes=True)
     # archerSim.sub_job(shortQ=True)
     a = 1
+
+
+    ###################################################
+    ##################  Viking Jobs ###################
+    ###################################################
+    inp_file = 'BOUT.inp'
