@@ -2,3 +2,5 @@
 *test*
 *#
 *.nc
+*scratch.ipynb*
+.ipynb_checkpoints/
