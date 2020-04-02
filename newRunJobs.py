@@ -13,6 +13,29 @@ from boutdata.restart import redistribute
 from inspect import getsource as GS
 
 
+def extract_rundir(run_dir):
+    string_split = list(np.roll(run_dir.split('/'), -1))
+    for i, j in enumerate(string_split):
+        temp = None
+        try:
+            temp = type(eval(j))
+        except(NameError, SyntaxError):
+            pass
+        if temp is int:
+            stringID = i
+            break
+        elif temp is None:
+            old_type = ''
+            return run_dir, old_type
+        print(f'type temp: {type(temp)}')
+    new_string = '/'
+    run_dir = new_string + new_string.join(string_split[:stringID])
+    old_type = new_string + new_string.join(string_split[stringID+1:])
+    if old_type in [new_string, 2*new_string]:
+        old_type = ''
+    return run_dir, old_type.strip('/')
+
+
 def func_reqs(obj):
     lines = GS(obj).partition(':')[0]
     print(lines)
@@ -39,7 +62,7 @@ def get_last_line(file_name):
 
 
 def find_line(filename, lookup):
-    # finds line in a file
+    # finds line in a file depending on the last instance of 'lookup'
     line_num = None
     with open(filename) as myFile:
         for num, line in enumerate(myFile, 1):
@@ -146,7 +169,9 @@ class BaseSim:
         self.log('hermes_info: {} - {}'.format(
             self.get_hermes_git()[0], self.get_hermes_git()[1]))
         self.log('hermes_ver: {}'.format(self.hermes_ver))
-        
+        self.setup_inp()
+
+    def setup_inp(self):
         for i in self.scan_IDs:
             os.system('mkdir -p {}'.format(i))
             os.system('cp {}/{} {}/BOUT.inp'.format(
@@ -177,11 +202,7 @@ class BaseSim:
             line_num = find_line('{}/0/{}'.format(
                 self.run_dir, self.inp_file),
                                  param)
-        # scan_params = []
-        # for i in self.scan_IDs:
-        #     scan_params.append(self.scan_params[i])
         if value is None:
-            # for i, j in enumerate(scan_params):
             for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
                     self.run_dir, i, self.add_type))
@@ -331,11 +352,78 @@ class MultiGridSim(BaseSim):
                 cp_grid_cmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}/{}'.format(
                     self.grid_file[i], self.run_dir, i)
             os.system(cp_grid_cmd)
-        # self.mod_inp('grid')
 
 
 class SlabSim(BaseSim):
     pass
+
+
+class StartFromOldSim(BaseSim):
+    def __init__(self, run_dir, new_path, scan_params, date_dir,
+                 add_type, log_file='log.txt', **kwargs):
+        self.old_dir = run_dir
+        log_loc = extract_rundir(run_dir)[0]
+        self.old_log_file = log_loc + log_file
+        cluster = read_line(self.old_log_file, 'cluster')
+        path_out = read_line(self.old_log_file, 'path_out')
+        self.grid_file = read_line(self.old_log_file, 'grid_file')
+        try:
+            hermes_ver = kwargs['hermes_ver']
+        except(KeyError):
+            hermes_ver = read_line(self.old_log_file, 'hermes_ver')
+        run_script = read_line(self.old_log_file, 'run_script')
+        super().__init__(cluster, path_out, new_path, date_dir, scan_params,
+                         hermes_ver, run_script, 'BOUT.inp', 'newstart')
+        self.add_type = add_type
+        os.system('cp {} {}'.format(log_file, self.run_dir))
+        self.log = AddToLog('{}/{}'.format(self.run_dir, log_file))
+        self.log('sim modified at: {}'.format(date_dir))
+
+    def setup(self, **kwargs):
+        self.log('new_title: {}'.format(self.title))
+        self.log('scan_params: {}'.format(str(self.scan_params)))
+        if 'hermes_ver' in kwargs:
+            self.hermes_ver = kwargs['hermes_ver']
+            self.log('BOUT_commit: {}'.format(self.get_hermes_git()[2]))
+            self.log('hermes_info: {} - {}'.format(
+                self.get_hermes_git()[0], self.get_hermes_git()[1]))
+            self.log('hermes_ver: {}'.format(self.hermes_ver))
+        os.system('cp {}/BOUT.inp {}/temp-BOUT.inp'.format(
+            self.old_dir, self.path_out))
+        self.inp_file = 'temp-BOUT.inp'
+        self.setup_inp()
+        os.system('rm {}/temp-BOUT.inp'.format(self.path_out))
+        for i in self.scan_IDs:
+            os.system('cp {}/{} {}/{}/{}'.format(
+                self.old_dir, self.run_script, self.run_dir, i, self.add_type))
+        self.copy_restart_files()
+
+    def copy_restart_files(self):
+        for i in self.scan_IDs:
+            os.system('cp {}/BOUT.restart.* {}/{}/{}'.format(
+                self.old_dir, self.run_dir, i, self.add_type))
+
+
+class StartFromOldMGSim(StartFromOldSim):
+    def __init__(self, run_dir, new_path, scan_params, date_dir,
+                 add_type, log_file='log.txt', **kwargs):
+        super().__init__(run_dir, new_path, scan_params, date_dir,
+                         add_type, log_file, **kwargs)
+        self.grid_file = self.scan_params
+
+    def setup(self):
+        super().setup()
+        for i in self.scan_IDs:
+            if self.cluster == 'viking':
+                cp_grid_cmd = 'cp /users/hm1234/scratch/gridfiles/{} {}/{}'.format(
+                    self.grid_file[i], self.run_dir, i)
+            elif self.cluster == 'archer':
+                cp_grid_cmd = 'cp /work/e281/e281/hm1234/gridfiles/{} {}/{}'.format(
+                    self.grid_file[i], self.run_dir, i)
+            elif self.cluster == 'marconi':
+                cp_grid_cmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}/{}'.format(
+                    self.grid_file[i], self.run_dir, i)
+            os.system(cp_grid_cmd)
 
 
 class AddSim(BaseSim):
@@ -344,8 +432,8 @@ class AddSim(BaseSim):
             self.t = kwargs['t']
         except(KeyError):
             self.t = None
-        self.run_dir = self.extract_rundir(run_dir)[0]
-        self.old_type = self.extract_rundir(run_dir)[1]
+        self.run_dir = extract_rundir(run_dir)[0]
+        self.old_type = extract_rundir(run_dir)[1]
         self.add_type = 'restart'
         os.chdir(self.run_dir)
         self.scan_params = read_line(log_file, 'scan_params')
@@ -376,27 +464,6 @@ class AddSim(BaseSim):
         self.copy_restart_files(old_type, new_type)
         self.title = new_type
 
-    def extract_rundir(self, run_dir):
-        string_split = list(np.roll(run_dir.split('/'), -1))
-        for i, j in enumerate(string_split):
-            temp = None
-            try:
-                temp = type(eval(j))
-            except(NameError, SyntaxError):
-                pass
-            if temp is int:
-                stringID = i
-                break
-            elif temp is None:
-                old_type = ''
-                return run_dir, old_type
-        new_string = '/'
-        run_dir = new_string + new_string.join(string_split[:stringID])
-        old_type = new_string + new_string.join(string_split[stringID+1:])
-        if old_type in [new_string, 2*new_string]:
-            old_type = ''
-        return run_dir, old_type.strip('/')
-
     def copy_new_inp(self, inpName):
         for i in self.scan_IDs:
             os.system('cp {}/{} {}/{}/{}/BOUT.inp'.format(
@@ -418,10 +485,12 @@ class AddSim(BaseSim):
             cmd = 'cp {}/{} {}'.format(old_type, self.inp_file, new_type)
             os.system(cmd)
 
-    def copy_restart_files(self, old_type='', new_type='restart', t=self.t):
+    def copy_restart_files(self, old_type='', new_type='restart', t=None):
+        if self.t is not None:
+            t = self.t
         if len(old_type) == 0:
             old_type = '.'
-        if self.t is None:
+        if t is None:
             cmd = 'cp {}/BOUT.restart.* {}'.format(old_type, new_type)
             for i in self.scan_IDs:
                 os.chdir('{}/{}'.format(self.run_dir, i))
@@ -430,7 +499,7 @@ class AddSim(BaseSim):
             for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
                     self.run_dir, i, old_type))
-                create(final=self.t, path='./', output='{}/{}/{}'.format(
+                create(final=t, path='./', output='{}/{}/{}'.format(
                     self.run_dir, i, new_type))
 
     def redistribute_procs(self, old_type, new_type, npes):
@@ -478,10 +547,6 @@ class AddTurbulence(AddSim):
             for i in self.scan_IDs:
                 os.chdir('{}/{}'.format(self.run_dir, i))
                 os.system('rm -rf {}'.format(temp_dir))
-
-
-class StartFromOldSim(AddSim):
-    pass
 
 
 def archerMain():
