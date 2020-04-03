@@ -20,13 +20,17 @@ def extract_rundir(run_dir):
         try:
             temp = type(eval(j))
         except(NameError, SyntaxError):
+            pass
+        if (temp is None and j!=string_split[-1]):
             continue
-        if temp is int:
+        elif (temp is None and j==string_split[-1]):
+            old_type = ''
+            if run_dir[-1] != '/':
+                run_dir = run_dir+'/'
+            return run_dir, old_type
+        elif temp is int:
             stringID = i
             break
-        elif temp is None:
-            old_type = ''
-            return run_dir, old_type
         print(f'type temp: {type(temp)}')
     new_string = '/'
     run_dir = new_string + new_string.join(string_split[:stringID]) + new_string
@@ -378,6 +382,7 @@ class StartFromOldSim(BaseSim):
         os.system('cp {} {}'.format(self.old_log_file, self.run_dir))
         self.log = AddToLog('{}/{}'.format(self.run_dir, log_file))
         self.log('sim modified at: {}'.format(date_dir))
+        self.log('scan_params: {}'.format(scan_params))
 
     def setup(self, **kwargs):
         self.log('new_title: {}'.format(self.title))
@@ -425,6 +430,7 @@ class StartFromOldMGSim(StartFromOldSim):
                 cp_grid_cmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}/{}'.format(
                     self.grid_file[i], self.run_dir, i)
             os.system(cp_grid_cmd)
+        self.log('grid_file: {}'.format(str(self.grid_file)))
 
 
 class AddSim(BaseSim):
@@ -563,15 +569,28 @@ def archerMain():
     hermes_ver = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    archerRestart = StartFromOldMGSim('/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/2/6-incSource',
-                                      'test2',
-                                      grids,
-                                      date_dir,
-                                      '',
-                                      'log.txt')
-    archerRestart.setup(hermes_ver='/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2')
-    archerRestart.mod_job(n_procs, tme)
-    archerRestart.sub_job()
+    # archerRestart = StartFromOldMGSim('/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/2/6-incSource',
+    #                                   'test2',
+    #                                   grids,
+    #                                   date_dir,
+    #                                   '',
+    #                                   'log.txt')
+    # archerRestart.setup(hermes_ver='/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2')
+    # archerRestart.mod_job(n_procs, tme)
+    # archerRestart.mod_inp('NOUT', 111)
+    # archerRestart.mod_inp('TIMESTEP', 22)
+    # archerRestart.sub_job()
+
+    restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
+    print(restart.scan_params)
+    restart.setup(new_type = '2-restart')
+    restart.mod_inp('TIMESTEP', 222)
+    restart.mod_inp('NOUT', 222)
+    restart.mod_inp('sheath_model', 2)
+    tme = '23:59:59'
+    restart.mod_job(n_procs, tme)
+    restart.sub_job()
+
 
     # archerSim = MultiGridSim(cluster = 'archer',
     #                          path_out = path_out,
