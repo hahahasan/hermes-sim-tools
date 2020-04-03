@@ -20,7 +20,7 @@ def extract_rundir(run_dir):
         try:
             temp = type(eval(j))
         except(NameError, SyntaxError):
-            pass
+            continue
         if temp is int:
             stringID = i
             break
@@ -29,7 +29,7 @@ def extract_rundir(run_dir):
             return run_dir, old_type
         print(f'type temp: {type(temp)}')
     new_string = '/'
-    run_dir = new_string + new_string.join(string_split[:stringID])
+    run_dir = new_string + new_string.join(string_split[:stringID]) + new_string
     old_type = new_string + new_string.join(string_split[stringID+1:])
     if old_type in [new_string, 2*new_string]:
         old_type = ''
@@ -372,16 +372,17 @@ class StartFromOldSim(BaseSim):
         except(KeyError):
             hermes_ver = read_line(self.old_log_file, 'hermes_ver')
         run_script = read_line(self.old_log_file, 'run_script')
-        super().__init__(cluster, path_out, new_path, date_dir, scan_params,
+        super().__init__(cluster, path_out, new_path, date_dir, self.grid_file, scan_params,
                          hermes_ver, run_script, 'BOUT.inp', 'newstart')
         self.add_type = add_type
-        os.system('cp {} {}'.format(log_file, self.run_dir))
+        os.system('cp {} {}'.format(self.old_log_file, self.run_dir))
         self.log = AddToLog('{}/{}'.format(self.run_dir, log_file))
         self.log('sim modified at: {}'.format(date_dir))
 
     def setup(self, **kwargs):
         self.log('new_title: {}'.format(self.title))
         self.log('scan_params: {}'.format(str(self.scan_params)))
+        # print(kwargs)
         if 'hermes_ver' in kwargs:
             self.hermes_ver = kwargs['hermes_ver']
             self.log('BOUT_commit: {}'.format(self.get_hermes_git()[2]))
@@ -411,14 +412,14 @@ class StartFromOldMGSim(StartFromOldSim):
                          add_type, log_file, **kwargs)
         self.grid_file = self.scan_params
 
-    def setup(self):
-        super().setup()
+    def setup(self, **kwargs):
+        super().setup(**kwargs)
         for i in self.scan_IDs:
             if self.cluster == 'viking':
                 cp_grid_cmd = 'cp /users/hm1234/scratch/gridfiles/{} {}/{}'.format(
                     self.grid_file[i], self.run_dir, i)
             elif self.cluster == 'archer':
-                cp_grid_cmd = 'cp /work/e281/e281/hm1234/gridfiles/{} {}/{}'.format(
+                cp_grid_cmd = 'cp /fs2/e281/e281/hm1234/gridfiles/{} {}/{}'.format(
                     self.grid_file[i], self.run_dir, i)
             elif self.cluster == 'marconi':
                 cp_grid_cmd = 'cp /marconi_work/FUA34_SOLBOUT4/hmuhamme/gridfiles/{} {}/{}'.format(
@@ -556,11 +557,21 @@ def archerMain():
     date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     title = 'grid'
     # scan_params = [0.02, 0.04, 0.06, 0.08]
-    grids = list_grids(list(range(1, 11)), 63161, 'tcv3', '64x64')
-    n_procs = 128
-    tme = '02:22:22'
+    grids = list_grids(list(range(4, 10)), 63161, 'newtcv2', '64x64')
+    n_procs = 256
+    tme = '22:22:22'
     hermes_ver = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
+
+    archerRestart = StartFromOldMGSim('/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/2/6-incSource',
+                                      'test2',
+                                      grids,
+                                      date_dir,
+                                      '',
+                                      'log.txt')
+    archerRestart.setup(hermes_ver='/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2')
+    archerRestart.mod_job(n_procs, tme)
+    archerRestart.sub_job()
 
     # archerSim = MultiGridSim(cluster = 'archer',
     #                          path_out = path_out,
@@ -615,19 +626,19 @@ def archerMain():
     # addN.mod_job(n_procs, tme)
     # addN.sub_job()
 
-    addC = AddCurrents(run_dir = run_dir,
-                       scan_IDs = [3, 4, 5, 6, 7, 8, 9])
-    addC.setup(old_type='2-addN', new_type='3-addC')
-    addC.scan_params=grids
-    addC.copy_new_inp('BOUT3.inp')
-    addC.mod_inp('grid')
-    addC.mod_inp('j_par', 'true')
-    addC.mod_inp('j_diamag', 'true')
-    addC.mod_inp('TIMESTEP', 1)
-    addC.mod_inp('NOUT', 333)
-    tme = '23:59:59'
-    addC.mod_job(n_procs, tme)
-    addC.sub_job()
+    # addC = AddCurrents(run_dir = run_dir,
+    #                    scan_IDs = [3, 4, 5, 6, 7, 8, 9])
+    # addC.setup(old_type='2-addN', new_type='3-addC')
+    # addC.scan_params=grids
+    # addC.copy_new_inp('BOUT3.inp')
+    # addC.mod_inp('grid')
+    # addC.mod_inp('j_par', 'true')
+    # addC.mod_inp('j_diamag', 'true')
+    # addC.mod_inp('TIMESTEP', 1)
+    # addC.mod_inp('NOUT', 333)
+    # tme = '23:59:59'
+    # addC.mod_job(n_procs, tme)
+    # addC.sub_job()
 
 
 def vikingMain():
