@@ -273,7 +273,7 @@ class BaseSim:
         if opt_nodes is True:
             nodes = int(np.ceil(n_procs/40))
             for i in self.scan_IDs:
-                os.chdir('{}/{}'.format(self.run_dir, i))
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
                 replace_line(self.run_script,
                              find_line(self.run_script,
                                        '--nodes'),
@@ -304,6 +304,65 @@ class BaseSim:
                          find_line(self.run_script, 'mpiexec'),
                          run_command)
 
+    def marconi_mod_job(self, n_procs, tme, opt_nodes=True):
+        if opt_nodes is True:
+            nodes = int(np.ceil(n_procs/48))
+            for i in self.scan_IDs:
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '#SBATCH -N'),
+                             '#SBATCH -N {}'.format(nodes))
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '--tasks'),
+                             '#SBATCH --tasks-per-node=48')
+        else:
+            for i in self.scan_IDs:
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '--tasks'),
+                             '#SBATCH --ntasks={}'.format(n_procs))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '#SBATCH -N'), '')
+        for i in self.scan_IDs:
+            job_dir = '{}/{}/{}'.format(self.run_dir, i, self.add_type)
+            os.chdir(job_dir)
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '--tasks'),
+                         '#SBATCH --tasks-per-node={}'.format(n_procs))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -J'),
+                         '#SBATCH -J {}-{}'.format(self.title, i))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -t'),
+                         '#SBATCH -t {}'.format(tme))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -o'),
+                         '#SBATCH -o {}/zzz.out'.format(job_dir))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -e'),
+                         '#SBATCH -e {}/zzz.err'.format(job_dir))
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            if self.add_type == '':
+                run_command = 'mpirun -n {} {} -d {}/{}'.format(
+                    n_procs, self.hermes_ver, self.run_dir, i)
+            else:
+                run_command = 'mpirun -n {} {} -d {}/{}/{} restart'.format(
+                    n_procs, self.hermes_ver, self.run_dir, i, self.add_type)
+            replace_line(self.run_script,
+                         find_line(self.run_script, 'mpirun'),
+                         run_command)
+
     def sub_job(self, shortQ=False):
         if shortQ is False:
             queue = ''
@@ -315,7 +374,7 @@ class BaseSim:
         elif self.cluster == 'archer':
             cmd = 'qsub {} {}'.format(queue, self.run_script)
         elif self.cluster == 'marconi':
-            cmd = 'figure it oot'
+            cmd = 'srun {} {}'.format(queue, self.run_script)
 
         for i in self.scan_IDs:
             os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
