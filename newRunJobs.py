@@ -661,11 +661,37 @@ def archerMain():
 
 
 def vikingMain():
-    print('viking')
+    cluster = 'viking'
+    path_out = '/mnt/lustre/users/hm1234/2D'
+    path_in = 'rollover'
+    date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
+    title = 'grid'
+    # scan_params = [0.02, 0.04, 0.06, 0.08]
+    grids = list_grids(list(range(3, 10)), 63127, 'newtcv2', '64x64')
+    n_procs = 128
+    tme = '00:22:22'
+    hermes_ver = '/users/hm1234/scratch/BOUT/3Apr20/hermes-2/hermes-2'
+    
+    sim = MultiGridSim(cluster = cluster,
+                       path_out = path_out,
+                       path_in = path_in,
+                       date_dir = date_dir,
+                       scan_params = grids,
+                       hermes_ver = hermes_ver,
+                       run_script = 'test.job',
+                       inp_file = 'BOUT.inp',
+                       title = title)
+    sim.setup()
+    sim.mod_inp('NOUT', 222)
+    sim.mod_inp('TIMESTEP', 444)
+    sim.mod_inp('radial_buffers', 'false')
+    sim.mod_job(n_procs, tme)
+    sim.sub_job()
 
 
 def marconiMain():
     print('marconi')
+
 
 if __name__ == "__main__":
     hostname = os.uname()[1]
