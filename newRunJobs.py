@@ -583,10 +583,10 @@ def archerMain():
 
     restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
     print(restart.scan_params)
-    restart.setup(new_type = '2-restart')
+    restart.setup(new_type = '3-incD')
     restart.mod_inp('TIMESTEP', 222)
     restart.mod_inp('NOUT', 222)
-    restart.mod_inp('sheath_model', 2)
+    restart.mod_inp('anomalous_D', 1)
     tme = '23:59:59'
     restart.mod_job(n_procs, tme)
     restart.sub_job()
