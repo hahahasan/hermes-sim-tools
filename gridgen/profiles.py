@@ -180,7 +180,7 @@ def checkProfiles(gridFiles=[], densities=[]):
 if __name__ == "__main__":
     shot = 63127
     dimension = '64x64'
-    baseGrid = 'tcv3_{}_{}.nc'.format(shot, dimension)
+    baseGrid = 'newtcv2_{}_{}.nc'.format(shot, dimension)
 
     # baseGrid = 'test.nc'
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         offset = 0.02*d
         offsets.append(offset)
         pedestals.append((0.2*d)-offset)
-        gridFiles.append('tcv3_{}_{}_profiles_{}e19.nc'.format(
+        gridFiles.append('newtcv2_{}_{}_profiles_{}e19.nc'.format(
             shot, dimension, d))
 
     # offsets = [0.02*1.2]
