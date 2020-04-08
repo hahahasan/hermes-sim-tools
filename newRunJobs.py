@@ -31,7 +31,6 @@ def extract_rundir(run_dir):
         elif temp is int:
             stringID = i
             break
-        print(f'type temp: {type(temp)}')
     new_string = '/'
     run_dir = new_string + new_string.join(string_split[:stringID]) + new_string
     old_type = new_string + new_string.join(string_split[stringID+1:])
@@ -51,10 +50,14 @@ def list_files(path):
         print(f)
 
 
-def replace_line(file_name, line_num, text):
+def replace_line(file_name, line_num, text, new_line=False):
     # replaces lines in a file
     lines = open(file_name, 'r').readlines()
-    lines[line_num - 1] = text + '\n'
+    new_txt = text + '\n'
+    if new_line is False:
+        lines[line_num - 1] = new_txt
+    else:
+        lines[line_num - 1] += new_txt
     out = open(file_name, 'w')
     out.writelines(lines)
     out.close()
@@ -224,6 +227,21 @@ class BaseSim:
                              '{} = {}'.format(param, value))
             self.log('modified: {}, to {}'.format(param, value))
 
+    def mod_file(self, file_name, line_ID, new_ID,
+                 line_num=None, new_line=False, scan_IDs=[]):
+        if len(scan_IDs) == 0:
+            scan_IDs = self.scan_IDs
+        if '=' not in new_ID:
+            new_ID = '{}={}'.format(line_ID, new_ID)
+        if new_line is True:
+            new_ID = ''
+        if line_num is None:
+            line_num = find_line('{}/0/{}'.format(self.run_dir, file_name),
+                                 line_ID)
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            replace_line(file_name, line_num, new_ID, new_line)
+
     def mod_job(self, n_procs, tme, opt_nodes=True):
         self.log('n_procs: {}'.format(n_procs))
         if self.cluster == 'viking':
@@ -232,7 +250,6 @@ class BaseSim:
             self.archer_mod_job(n_procs, tme, opt_nodes)
         elif self.cluster == 'marconi':
             self.marconi_mod_job(n_procs, tme, opt_nodes)
-
 
     def archer_mod_job(self, n_procs, tme, opt_nodes=True):
         if opt_nodes is True:
@@ -272,7 +289,7 @@ class BaseSim:
             replace_line(self.run_script,
                          find_line(self.run_script, 'aprun'),
                          run_command)
-            
+
     def viking_mod_job(self, n_procs, tme, opt_nodes=True):
         if opt_nodes is True:
             nodes = int(np.ceil(n_procs/40))
@@ -639,11 +656,10 @@ def archerMain():
     # archerRestart.sub_job()
 
     restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
-    print(restart.scan_params)
-    restart.setup(new_type = '2-restart')
-    restart.mod_inp('TIMESTEP', 222)
-    restart.mod_inp('NOUT', 222)
-    restart.mod_inp('sheath_model', 2)
+    # print(restart.scan_params)
+    restart.setup(old_type='2.1-incD', new_type = '3-free_o3')
+    restart.mod_inp('bndry_yup', 'free_o3', 271)
+    restart.mod_inp('bndry_ydown', 'free_o3', 272)
     tme = '23:59:59'
     restart.mod_job(n_procs, tme)
     restart.sub_job()
@@ -729,21 +745,41 @@ def vikingMain():
     tme = '00:22:22'
     hermes_ver = '/users/hm1234/scratch/BOUT/3Apr20/hermes-2/hermes-2'
     
-    sim = MultiGridSim(cluster = cluster,
-                       path_out = path_out,
-                       path_in = path_in,
-                       date_dir = date_dir,
-                       scan_params = grids,
-                       hermes_ver = hermes_ver,
-                       run_script = 'test.job',
-                       inp_file = 'BOUT.inp',
-                       title = title)
-    sim.setup()
-    sim.mod_inp('NOUT', 222)
-    sim.mod_inp('TIMESTEP', 444)
-    sim.mod_inp('radial_buffers', 'false')
-    sim.mod_job(n_procs, tme)
-    sim.sub_job()
+    # sim = MultiGridSim(cluster = cluster,
+    #                    path_out = path_out,
+    #                    path_in = path_in,
+    #                    date_dir = date_dir,
+    #                    scan_params = grids,
+    #                    hermes_ver = hermes_ver,
+    #                    run_script = 'test.job',
+    #                    inp_file = 'BOUT.inp',
+    #                    title = title)
+    # sim.setup()
+    # sim.mod_inp('NOUT', 222)
+    # sim.mod_inp('TIMESTEP', 444)
+    # sim.mod_inp('radial_buffers', 'false')
+    # sim.mod_job(n_procs, tme)
+    # sim.sub_job()
+
+    run_dir = '/mnt/lustre/users/hm1234/2D/rollover/grid-04-04-20_135155'
+    tme = '22:22:22'
+
+    # addN = AddNeutrals(run_dir = run_dir)
+    # addN.setup(new_type = '2-addN')
+    # addN.mod_inp('TIMESTEP', 111)
+    # addN.mod_inp('NOUT', 333)
+    # addN.mod_inp('type', 'mixed', 221)
+    # addN.add_var(Nn=0.04, Pn=0.02)
+    # addN.mod_job(n_procs, tme)
+    # addN.sub_job()
+
+    addC = AddCurrents(run_dir)
+    addC.setup('2-addN', '3-addC')
+    addC.mod_inp('j_par', 'true')
+    addC.mod_inp('j_diamag', 'true')
+    addC.mod_file('test.job', '#SBATCH --mem', '10gb')
+    addC.mod_job(n_procs, tme)
+    addC.sub_job()
 
 
 def marconiMain():
