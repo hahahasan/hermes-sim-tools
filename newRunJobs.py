@@ -216,8 +216,8 @@ class BaseSim:
                 replace_line('{}'.format(self.inp_file),
                              line_num,
                              '{} = {}'.format(param, self.scan_params[i]))
-                self.log('modified: {}, to {}'.format(
-                    param, [self.scan_params[i] for i in self.scan_IDs]))
+            self.log('modified: {}, to {}'.format(
+                param, [self.scan_params[i] for i in self.scan_IDs]))
         else:
             for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
@@ -817,7 +817,7 @@ def marconiMain():
     hyper = RestartSim(run_dir = run_dir)
     hyper.setup(new_type = '2-hyper')
     hyper.copy_restart_files(new_type='2-hyper', t=-10)
-    hyper.mod_inp('hyper', 0.2, 148)
+    hyper.copy_new_inp('testBOUT.inp')
     tme = '22:22:22'
     hyper.mod_job(n_procs, tme)
     hyper.sub_job()
