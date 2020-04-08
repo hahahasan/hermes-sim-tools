@@ -178,7 +178,7 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    shot = 63127
+    shot = 63161
     dimension = '64x64'
     baseGrid = 'newtcv2_{}_{}.nc'.format(shot, dimension)
 
@@ -194,6 +194,7 @@ if __name__ == "__main__":
     densities = [8.9, 9.6, 10.2, 11, 12]
     densities = [9.9, 10.5, 11, 12, 13]
     densities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    densities = [0.2, 0.4, 0.6, 0.8, 1]
 
     pedBase = 0.2
     offsets = []
