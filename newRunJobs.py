@@ -231,7 +231,7 @@ class BaseSim:
         elif self.cluster == 'archer':
             self.archer_mod_job(n_procs, tme, opt_nodes)
         elif self.cluster == 'marconi':
-            msg = 'need to figure it oot'
+            self.marconi_mod_job(n_procs, tme, opt_nodes)
 
     def archer_mod_job(self, n_procs, tme, opt_nodes=True):
         if opt_nodes is True:
@@ -276,7 +276,7 @@ class BaseSim:
         if opt_nodes is True:
             nodes = int(np.ceil(n_procs/40))
             for i in self.scan_IDs:
-                os.chdir('{}/{}'.format(self.run_dir, i))
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
                 replace_line(self.run_script,
                              find_line(self.run_script,
                                        '--nodes'),
@@ -319,6 +319,61 @@ class BaseSim:
             os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
             replace_line(file_name, line_num, new_ID)
 
+    def marconi_mod_job(self, n_procs, tme, opt_nodes=True):
+        if opt_nodes is True:
+            nodes = int(np.ceil(n_procs/48))
+            for i in self.scan_IDs:
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '#SBATCH -N'),
+                             '#SBATCH -N {}'.format(nodes))
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '--tasks'),
+                             '#SBATCH --tasks-per-node=48')
+        else:
+            for i in self.scan_IDs:
+                os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '--tasks'),
+                             '#SBATCH --ntasks={}'.format(n_procs))
+                replace_line(self.run_script,
+                             find_line(self.run_script,
+                                       '#SBATCH -N'), '')
+        for i in self.scan_IDs:
+            job_dir = '{}/{}/{}'.format(self.run_dir, i, self.add_type)
+            os.chdir(job_dir)
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -J'),
+                         '#SBATCH -J {}-{}'.format(self.title, i))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -t'),
+                         '#SBATCH -t {}'.format(tme))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -o'),
+                         '#SBATCH -o {}/zzz.out'.format(job_dir))
+            replace_line(self.run_script,
+                         find_line(self.run_script,
+                                   '#SBATCH -e'),
+                         '#SBATCH -e {}/zzz.err'.format(job_dir))
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            if self.add_type == '':
+                run_command = 'mpirun -n {} {} -d {}/{}'.format(
+                    n_procs, self.hermes_ver, self.run_dir, i)
+            else:
+                run_command = 'mpirun -n {} {} -d {}/{}/{} restart'.format(
+                    n_procs, self.hermes_ver, self.run_dir, i, self.add_type)
+            replace_line(self.run_script,
+                         find_line(self.run_script, 'mpirun'),
+                         run_command)
+
     def sub_job(self, shortQ=False):
         if shortQ is False:
             queue = ''
@@ -330,7 +385,7 @@ class BaseSim:
         elif self.cluster == 'archer':
             cmd = 'qsub {} {}'.format(queue, self.run_script)
         elif self.cluster == 'marconi':
-            cmd = 'figure it oot'
+            cmd = 'sbatch {} {}'.format(queue, self.run_script)
 
         for i in self.scan_IDs:
             os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
@@ -455,6 +510,8 @@ class AddSim(BaseSim):
         self.add_type = 'restart'
         os.chdir(self.run_dir)
         self.scan_params = read_line(log_file, 'scan_params')
+        if self.scan_params is None:
+            self.scan_params = '0'
         if len(scan_IDs) == 0:
             self.scan_IDs = list(range(len(self.scan_params)))
         else:
@@ -472,7 +529,7 @@ class AddSim(BaseSim):
         self.log('sim modified at: {}'.format(
             datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")))
 
-    def setup(self, old_type='', new_type='restart'):
+    def setup(self, old_type='', new_type='restart', **kwargs):
         self.add_type = new_type
         self.log('new_sim_type: {}'.format(new_type))
         for i in self.scan_IDs:
@@ -594,10 +651,10 @@ def archerMain():
 
     restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
     print(restart.scan_params)
-    restart.setup(new_type = '2-restart')
+    restart.setup(new_type = '3-incD')
     restart.mod_inp('TIMESTEP', 222)
     restart.mod_inp('NOUT', 222)
-    restart.mod_inp('sheath_model', 2)
+    restart.mod_inp('anomalous_D', 1)
     tme = '23:59:59'
     restart.mod_job(n_procs, tme)
     restart.sub_job()
@@ -721,7 +778,45 @@ def vikingMain():
 
 
 def marconiMain():
-    print('marconi')
+    cluster = 'marconi'
+    path_out = '/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D'
+    path_in = 'initial'
+    date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
+    title = 'gauss'
+    # scan_params = [0.02, 0.04, 0.06, 0.08]
+    # grids = list_grids(list(range(3, 10)), 63127, 'newtcv2', '64x64')
+    n_procs = 512
+    tme = '22:22:22'
+    hermes_ver = '/marconi_work/FUA34_SOLBOUT4/hmuhamme/hermes-2/hermes-2'
+    
+    # sim = SlabSim(cluster = cluster,
+    #               path_out = path_out,
+    #               path_in = path_in,
+    #               date_dir = date_dir,
+    #               grid_file = None,
+    #               scan_params = None,
+    #               hermes_ver = hermes_ver,
+    #               run_script = 'test.job',
+    #               inp_file = 'BOUT-slab.inp',
+    #               title = title)
+    # sim.setup()
+    # sim.mod_inp('NOUT', 222)
+    # sim.mod_inp('TIMESTEP', 111)
+    # sim.mod_inp('ion_viscosity', 'false')
+    # sim.mod_inp('hyper', -1, 148)
+    # sim.mod_job(n_procs, tme)
+    # sim.sub_job()
+
+    run_dir = '/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/initial/gauss-04-04-20_201318'
+    
+    hyper = RestartSim(run_dir = run_dir)
+    hyper.setup(new_type = '2-hyper')
+    hyper.mod_inp('hyper', 0.2, 148)
+    tme = '22:22:22'
+    hyper.mod_job(n_procs, tme)
+    hyper.sub_job()
+
+    
 
 
 if __name__ == "__main__":
