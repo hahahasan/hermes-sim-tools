@@ -780,6 +780,7 @@ def marconiMain():
     
     hyper = RestartSim(run_dir = run_dir)
     hyper.setup(new_type = '2-hyper')
+    hyper.copy_restart_files(new_type='2-hyper', t=-10)
     hyper.mod_inp('hyper', 0.2, 148)
     tme = '22:22:22'
     hyper.mod_job(n_procs, tme)
