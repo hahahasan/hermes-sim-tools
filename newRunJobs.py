@@ -50,10 +50,14 @@ def list_files(path):
         print(f)
 
 
-def replace_line(file_name, line_num, text):
+def replace_line(file_name, line_num, text, new_line=False):
     # replaces lines in a file
     lines = open(file_name, 'r').readlines()
-    lines[line_num - 1] = text + '\n'
+    new_txt = text + '\n'
+    if new_line is False:
+        lines[line_num - 1] = new_txt
+    else:
+        lines[line_num - 1] += new_txt
     out = open(file_name, 'w')
     out.writelines(lines)
     out.close()
@@ -223,6 +227,21 @@ class BaseSim:
                              '{} = {}'.format(param, value))
             self.log('modified: {}, to {}'.format(param, value))
 
+    def mod_file(self, file_name, line_ID, new_ID,
+                 line_num=None, new_line=False, scan_IDs=[]):
+        if len(scan_IDs) == 0:
+            scan_IDs = self.scan_IDs
+        if '=' not in new_ID:
+            new_ID = '{}={}'.format(line_ID, new_ID)
+        if new_line is True:
+            new_ID = ''
+        if line_num is None:
+            line_num = find_line('{}/0/{}'.format(self.run_dir, file_name),
+                                 line_ID)
+        for i in self.scan_IDs:
+            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
+            replace_line(file_name, line_num, new_ID, new_line)
+
     def mod_job(self, n_procs, tme, opt_nodes=True):
         self.log('n_procs: {}'.format(n_procs))
         if self.cluster == 'viking':
@@ -305,18 +324,6 @@ class BaseSim:
             replace_line(self.run_script,
                          find_line(self.run_script, 'mpiexec'),
                          run_command)
-
-    def mod_file(self, file_name, line_ID, new_ID, line_num=None, scan_IDs=[]):
-        if len(scan_IDs) == 0:
-            scan_IDs = self.scan_IDs
-        if '=' not in new_ID:
-            new_ID = '{}={}'.format(line_ID, new_ID)
-        if line_num is None:
-            line_num = find_line('{}/0/{}'.format(self.run_dir, file_name),
-                                 line_ID)
-        for i in self.scan_IDs:
-            os.chdir('{}/{}/{}'.format(self.run_dir, i, self.add_type))
-            replace_line(file_name, line_num, new_ID)
 
     def marconi_mod_job(self, n_procs, tme, opt_nodes=True):
         if opt_nodes is True:
@@ -770,7 +777,7 @@ def vikingMain():
     addC.setup('2-addN', '3-addC')
     addC.mod_inp('j_par', 'true')
     addC.mod_inp('j_diamag', 'true')
-    addC.mod_file('test.job', '#SBATCH --mem', '4gb')
+    addC.mod_file('test.job', '#SBATCH --mem', '10gb')
     addC.mod_job(n_procs, tme)
     addC.sub_job()
 
