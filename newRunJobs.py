@@ -216,8 +216,8 @@ class BaseSim:
                 replace_line('{}'.format(self.inp_file),
                              line_num,
                              '{} = {}'.format(param, self.scan_params[i]))
-                self.log('modified: {}, to {}'.format(
-                    param, [self.scan_params[i] for i in self.scan_IDs]))
+            self.log('modified: {}, to {}'.format(
+                param, [self.scan_params[i] for i in self.scan_IDs]))
         else:
             for i in self.scan_IDs:
                 os.chdir('{}/{}/{}'.format(
