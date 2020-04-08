@@ -436,7 +436,7 @@ class SlabSim(BaseSim):
 
 class StartFromOldSim(BaseSim):
     def __init__(self, run_dir, new_path, scan_params, date_dir,
-                 add_type, log_file='log.txt', **kwargs):
+                 add_type, title='newstart', log_file='log.txt', **kwargs):
         self.old_dir = run_dir
         log_loc = extract_rundir(run_dir)[0]
         self.old_log_file = log_loc + log_file
@@ -449,17 +449,17 @@ class StartFromOldSim(BaseSim):
             hermes_ver = read_line(self.old_log_file, 'hermes_ver')
         run_script = read_line(self.old_log_file, 'run_script')
         super().__init__(cluster, path_out, new_path, date_dir, self.grid_file, scan_params,
-                         hermes_ver, run_script, 'BOUT.inp', 'newstart')
+                         hermes_ver, run_script, 'BOUT.inp', title)
         self.add_type = add_type
         os.system('cp {} {}'.format(self.old_log_file, self.run_dir))
         self.log = AddToLog('{}/{}'.format(self.run_dir, log_file))
         self.log('sim modified at: {}'.format(date_dir))
+        self.log('starting new sim from: {}'.format(self.old_dir))
         self.log('scan_params: {}'.format(scan_params))
 
     def setup(self, **kwargs):
         self.log('new_title: {}'.format(self.title))
         self.log('scan_params: {}'.format(str(self.scan_params)))
-        # print(kwargs)
         if 'hermes_ver' in kwargs:
             self.hermes_ver = kwargs['hermes_ver']
             self.log('BOUT_commit: {}'.format(self.get_hermes_git()[2]))
@@ -484,9 +484,9 @@ class StartFromOldSim(BaseSim):
 
 class StartFromOldMGSim(StartFromOldSim):
     def __init__(self, run_dir, new_path, scan_params, date_dir,
-                 add_type, log_file='log.txt', **kwargs):
+                 add_type, title='newstart', log_file='log.txt', **kwargs):
         super().__init__(run_dir, new_path, scan_params, date_dir,
-                         add_type, log_file, **kwargs)
+                         add_type, title, log_file, **kwargs)
         self.grid_file = self.scan_params
 
     def setup(self, **kwargs):
@@ -637,32 +637,33 @@ def archerMain():
     date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     title = 'grid'
     # scan_params = [0.02, 0.04, 0.06, 0.08]
-    grids = list_grids(list(range(4, 10)), 63161, 'newtcv2', '64x64')
+    grids = list_grids([0.2, 0.4, 0.6, 0.8, 1], 63161, 'newtcv2', '64x64')
     n_procs = 256
     tme = '22:22:22'
     hermes_ver = '/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2'
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    # archerRestart = StartFromOldMGSim('/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/2/6-incSource',
-    #                                   'test2',
-    #                                   grids,
-    #                                   date_dir,
-    #                                   '',
-    #                                   'log.txt')
-    # archerRestart.setup(hermes_ver='/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2')
-    # archerRestart.mod_job(n_procs, tme)
-    # archerRestart.mod_inp('NOUT', 111)
-    # archerRestart.mod_inp('TIMESTEP', 22)
-    # archerRestart.sub_job()
+    archerRestart = StartFromOldMGSim('/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/0/6-incSource',
+                                      'test2',
+                                      grids,
+                                      date_dir,
+                                      '',
+                                      'newstart2',
+                                      'log2.txt')
+    archerRestart.setup(hermes_ver='/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2')
+    archerRestart.mod_job(n_procs, tme)
+    archerRestart.mod_inp('NOUT', 111)
+    archerRestart.mod_inp('TIMESTEP', 22)
+    archerRestart.sub_job()
 
-    restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
-    # print(restart.scan_params)
-    restart.setup(old_type='2.1-incD', new_type = '3-free_o3')
-    restart.mod_inp('bndry_yup', 'free_o3', 271)
-    restart.mod_inp('bndry_ydown', 'free_o3', 272)
-    tme = '23:59:59'
-    restart.mod_job(n_procs, tme)
-    restart.sub_job()
+    # restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
+    # # print(restart.scan_params)
+    # restart.setup(old_type='2.1-incD', new_type = '3-free_o3')
+    # restart.mod_inp('bndry_yup', 'free_o3', 271)
+    # restart.mod_inp('bndry_ydown', 'free_o3', 272)
+    # tme = '23:59:59'
+    # restart.mod_job(n_procs, tme)
+    # restart.sub_job()
 
 
     # archerSim = MultiGridSim(cluster = 'archer',
