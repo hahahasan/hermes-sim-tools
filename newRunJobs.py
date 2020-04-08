@@ -31,7 +31,6 @@ def extract_rundir(run_dir):
         elif temp is int:
             stringID = i
             break
-        print(f'type temp: {type(temp)}')
     new_string = '/'
     run_dir = new_string + new_string.join(string_split[:stringID]) + new_string
     old_type = new_string + new_string.join(string_split[stringID+1:])
@@ -650,11 +649,10 @@ def archerMain():
     # archerRestart.sub_job()
 
     restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
-    print(restart.scan_params)
-    restart.setup(new_type = '3-incD')
-    restart.mod_inp('TIMESTEP', 222)
-    restart.mod_inp('NOUT', 222)
-    restart.mod_inp('anomalous_D', 1)
+    # print(restart.scan_params)
+    restart.setup(old_type='2.1-incD', new_type = '3-free_o3')
+    restart.mod_inp('bndry_yup', 'free_o3', 271)
+    restart.mod_inp('bndry_ydown', 'free_o3', 272)
     tme = '23:59:59'
     restart.mod_job(n_procs, tme)
     restart.sub_job()
