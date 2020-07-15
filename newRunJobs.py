@@ -1,16 +1,15 @@
+from boutdata.restart import addvar
+from boutdata.restart import addnoise
+from boutdata.restart import create
+from boutdata.restart import resizeZ
+from boutdata.restart import redistribute
+from inspect import getsource as GS
 import numpy as np
 import os
 import subprocess
 import sys
 import datetime
 import time
-from boutdata.restart import addvar
-from boutdata.restart import addnoise
-from boutdata.restart import create
-from boutdata.restart import addnoise
-from boutdata.restart import resizeZ
-from boutdata.restart import redistribute
-from inspect import getsource as GS
 
 
 def extract_rundir(run_dir):
@@ -915,6 +914,22 @@ def vikingMain():
     addC.mod_job(n_procs, tme)
     addC.sub_job()
 
+    # addC = AddCurrents(run_dir)
+    # addC.setup("2-addN", "3-addC")
+    # addC.mod_inp("j_par", "true")
+    # addC.mod_inp("j_diamag", "true")
+    # addC.mod_file("test.job", "#SBATCH --mem", "10gb")
+    # addC.mod_job(n_procs, tme)
+    # addC.sub_job()
+
+    # res = RestartSim(run_dir)
+    # res.setup(old_type="3-addC", new_type="4.1-radBuff")
+    # res.mod_inp("radial_buffers", "true")
+    # res.mod_inp("ion_viscosity", "true")
+    # res.mod_inp("anomalous_D", 1)
+    # res.mod_job(n_procs, tme)
+    # res.sub_job()
+
 
 def marconiMain():
     cluster = "marconi"
@@ -1070,6 +1085,16 @@ def marconiMain():
     # # slab.mod_inp("eta_limit_alpha", -1)
     # slab.mod_job(576, "22:22:22")
     # slab.sub_job()
+
+    # run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/initial/gauss-04-04-20_201318"
+
+    # hyper = RestartSim(run_dir=run_dir)
+    # hyper.setup(new_type="2-hyper")
+    # hyper.copy_restart_files(new_type="2-hyper", t=-10)
+    # hyper.copy_new_inp("testBOUT.inp")
+    # tme = "22:22:22"
+    # hyper.mod_job(n_procs, tme)
+    # hyper.sub_job()
 
 
 if __name__ == "__main__":
