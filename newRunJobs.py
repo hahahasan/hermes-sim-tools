@@ -1,16 +1,15 @@
+from boutdata.restart import addvar
+from boutdata.restart import addnoise
+from boutdata.restart import create
+from boutdata.restart import resizeZ
+from boutdata.restart import redistribute
+from inspect import getsource as GS
 import numpy as np
 import os
 import subprocess
 import sys
 import datetime
 import time
-from boutdata.restart import addvar
-from boutdata.restart import addnoise
-from boutdata.restart import create
-from boutdata.restart import addnoise
-from boutdata.restart import resizeZ
-from boutdata.restart import redistribute
-from inspect import getsource as GS
 
 
 def extract_rundir(run_dir):
@@ -901,10 +900,10 @@ def vikingMain():
     # addN.sub_job()
 
     # addC = AddCurrents(run_dir)
-    # addC.setup('2-addN', '3-addC')
-    # addC.mod_inp('j_par', 'true')
-    # addC.mod_inp('j_diamag', 'true')
-    # addC.mod_file('test.job', '#SBATCH --mem', '10gb')
+    # addC.setup("2-addN", "3-addC")
+    # addC.mod_inp("j_par", "true")
+    # addC.mod_inp("j_diamag", "true")
+    # addC.mod_file("test.job", "#SBATCH --mem", "10gb")
     # addC.mod_job(n_procs, tme)
     # addC.sub_job()
 
