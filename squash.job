@@ -30,6 +30,6 @@ echo trying
 
 export OMP_NUM_THREADS=1
 
-python ~/scratch/hermes-sim-tools/squashdata.py
+python ~/scratch/hermes-sim-tools/x-analysis.py
 
 echo exited
