@@ -38,9 +38,12 @@ from functools import reduce
 
 
 def factors(n):
-    return set(reduce(list.__add__,
-                      ([i, n//i] for i in range(1, int(n**0.5) + 1)
-                       if n % i == 0)))
+    return set(
+        reduce(
+            list.__add__,
+            ([i, n // i] for i in range(1, int(n ** 0.5) + 1) if n % i == 0),
+        )
+    )
 
 
 def getSource(obj):
@@ -49,14 +52,15 @@ def getSource(obj):
 
 
 def funcReqs(obj):
-    lines = GS(obj).partition(':')[0]
+    lines = GS(obj).partition(":")[0]
     print(lines)
 
 
 def getDistinctColors(n):
-    huePartition = 1.0/(n+1)
-    colors = [colorsys.hsv_to_rgb(
-        huePartition*value, 1.0, 1.0) for value in range(0, n)]
+    huePartition = 1.0 / (n + 1)
+    colors = [
+        colorsys.hsv_to_rgb(huePartition * value, 1.0, 1.0) for value in range(0, n)
+    ]
     return colors
 
 
@@ -83,51 +87,55 @@ def concatenate(data, axis=0):
 
 
 def find_closest(data, v):
-    return (np.abs(data-v)).argmin()
+    return (np.abs(data - v)).argmin()
 
 
 def find_line(filename, lookup):
     # finds line in a file
-    line_num = 'blah'
+    line_num = "blah"
     with open(filename) as myFile:
         for num, line in enumerate(myFile, 1):
             if lookup in line:
                 line_num = num
-    if line_num == 'blah':
+    if line_num == "blah":
         sys.exit('could not find "{}" in "{}"'.format(lookup, filename))
     return line_num
 
 
 def read_line(filename, lookup):
-    lines = open(filename, 'r').readlines()
+    lines = open(filename, "r").readlines()
     line_num = find_line(filename, lookup) - 1
-    tmp = lines[line_num].split(': ')[1]
+    tmp = lines[line_num].split(": ")[1]
     try:
         tmp = eval(tmp)
-    except(NameError, SyntaxError):
+    except (NameError, SyntaxError):
         tmp = tmp.strip()
     return tmp
 
 
 class squashData:
-    def __init__(self, dataDir, logFile='log.txt', dataDirName='data'):
+    def __init__(self, dataDir, logFile="log.txt", dataDirName="data"):
         self.dataDir = dataDir
         os.chdir(dataDir)
-        self.gridFile = read_line(logFile, 'grid_file')
-        self.scanParams = read_line(logFile, 'scan_params')
-        self.scanNum = len(self.scanParams)
+        self.gridFile = read_line(logFile, "grid_file")
+        self.scanParams = read_line(logFile, "scan_params")
+        if self.scanParams is not None:
+            self.scanNum = len(self.scanParams)
+        else:
+            self.scanNum = 1
+            self.scanParams = ["foo"]
         self.subDirs = []
         for i in range(self.scanNum):
             # print('{}/{}'.format(dataDir, i))
-            a = next(os.walk('{}/{}'.format(dataDir, i)))[1]
+            a = next(os.walk("{}/{}".format(dataDir, i)))[1]
             a.sort()
-            a.insert(0, '')
+            a.insert(0, "")
             self.subDirs.append(a)
 
     def saveData(self, subDir=[], scanIds=[]):
-        '''
+        """
         quant, subDirs: will always assume populated base directory
-        '''
+        """
         if len(scanIds) == 0:
             scanIds = range(self.scanNum)
         if len(subDir) == 0:
@@ -137,38 +145,34 @@ class squashData:
             for i in scanIds:
                 subDirs.append(subDir)
         for i in scanIds:
-            print('################# squashing scanParam {}'.format(
-                self.scanParams[i]))
+            print("################# squashing scanParam {}".format(self.scanParams[i]))
             for j in range(0, len(subDirs[i])):
                 title = subDirs[i][j]
-                print('############## collecting for {}'.format(title))
-                os.chdir('{}/{}/{}'.format(self.dataDir, i, title))
-                if os.path.isfile('squashed.nc') is True:
-                    print('already squashed data'.format())
+                print("############## collecting for {}".format(title))
+                os.chdir("{}/{}/{}".format(self.dataDir, i, title))
+                if os.path.isfile("squashed.nc") is True:
+                    print("already squashed data".format())
                     continue
                 try:
                     # os.system('rm BOUT.dmp.nc')
-                    squashoutput(outputname='squashed.nc', compress=True,
-                                 complevel=1, quiet=True)
-                except(OSError):
-                    print('could not squash {}-{}'.format(i, title))
+                    squashoutput(
+                        outputname="squashed.nc", compress=True, complevel=1, quiet=True
+                    )
+                except (OSError, ValueError):
+                    print("could not squash {}-{}".format(i, title))
                     continue
-                print('squashed {}'.format(title))
+                print("squashed {}".format(title))
 
 
 class analyse:
-    def __init__(self, outDir,  analysisDir='analysis',
-                 logFile='log.txt'):
+    def __init__(self, outDir, analysisDir="analysis", logFile="log.txt"):
         self.outDir = outDir
-        self.analysisDir = '{}/{}'.format(outDir, analysisDir)
-        self.scanParams = read_line('{}/{}'.format(outDir, logFile),
-                                    'scanParams')
-        self.title = read_line('{}/{}'.format(outDir, logFile),
-                               'title')
-        self.gridFile = read_line('{}/{}'.format(outDir, logFile),
-                                  'gridFile')
+        self.analysisDir = "{}/{}".format(outDir, analysisDir)
+        self.scanParams = read_line("{}/{}".format(outDir, logFile), "scanParams")
+        self.title = read_line("{}/{}".format(outDir, logFile), "title")
+        self.gridFile = read_line("{}/{}".format(outDir, logFile), "gridFile")
         if type(self.title) is not str:
-            self.title = 'grid'
+            self.title = "grid"
         self.scanNum = len(self.scanParams)
         if os.path.isdir(self.analysisDir) is not True:
             os.mkdir(self.analysisDir)
@@ -177,28 +181,27 @@ class analyse:
         self.subDirs = []
         for i in range(self.scanNum):
             # print('{}/{}'.format(dataDir, i))
-            a = next(os.walk('{}/{}'.format(outDir, i)))[1]
+            a = next(os.walk("{}/{}".format(outDir, i)))[1]
             a.sort()
-            a.insert(0, '')
+            a.insert(0, "")
             self.subDirs.append(a)
 
-    def listKeys(self, simIndex=0, simType=''):
-        os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-        datFile = DataFile('BOUT.dmp.0.nc')
+    def listKeys(self, simIndex=0, simType=""):
+        os.chdir("{}/{}/{}".format(self.outDir, simIndex, simType))
+        datFile = DataFile("BOUT.dmp.0.nc")
         self.datFile = datFile
         return datFile.keys()
 
-    def gridData(self, simIndex=0, simType=''):
-        os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-        self.gridFile = fnmatch.filter(next(os.walk('./'))[2],
-                                       '*profile*')[0]
+    def gridData(self, simIndex=0, simType=""):
+        os.chdir("{}/{}/{}".format(self.outDir, simIndex, simType))
+        self.gridFile = fnmatch.filter(next(os.walk("./"))[2], "*profile*")[0]
         grid_dat = DataFile(self.gridFile)
-        if os.path.isfile('squashed.nc') is False:
-            print('{}-{} not squashed. squashing now'.format(simIndex,
-                                                             simType))
-            squashoutput(outputname='squashed.nc', compress=True,
-                         complevel=1, quiet=True)
-        self.datFile = DataFile('squashed.nc')
+        if os.path.isfile("squashed.nc") is False:
+            print("{}-{} not squashed. squashing now".format(simIndex, simType))
+            squashoutput(
+                outputname="squashed.nc", compress=True, complevel=1, quiet=True
+            )
+        self.datFile = DataFile("squashed.nc")
         self.grid_dat = grid_dat
         self.j11 = int(grid_dat["jyseps1_1"])
         self.j12 = int(grid_dat["jyseps1_2"])
@@ -208,59 +211,62 @@ class analyse:
         self.ix2 = int(grid_dat["ixseps2"])
         try:
             self.nin = int(grid_dat["ny_inner"])
-        except(KeyError):
+        except (KeyError):
             self.nin = self.j12
         self.nx = int(grid_dat["nx"])
         self.ny = int(grid_dat["ny"])
-        self.R = grid_dat['Rxy']
-        self.Z = grid_dat['Zxy']
-        R2 = self.R[:, self.j12:self.j22]
+        self.R = grid_dat["Rxy"]
+        self.Z = grid_dat["Zxy"]
+        R2 = self.R[:, self.j12 : self.j22]
         self.outMid_idx = self.j12 + np.where(R2 == np.amax(R2))[1][0]
 
-    def gridPlot(self, quant2D, simIndex=0, simType=''):
+    def gridPlot(self, quant2D, simIndex=0, simType=""):
         self.gridData(simIndex, simType)
         try:
             quant2D = self.grid_dat[quant2D]
-        except(KeyError):
+        except (KeyError):
             quant2D = self.datFile[quant2D]
         gridcontourf(self.grid_dat, quant2D)
 
-    def collectData(self, quant='all', simIndex=0, simType=''):
-        os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
-        if os.path.isfile('squashed.nc') is False:
-            print('{}-{} not squashed. squashing now'.format(simIndex,
-                                                             simType))
-            squashoutput(outputname='squashed.nc', compress=True,
-                         complevel=1, quiet=True)
+    def collectData(self, quant="all", simIndex=0, simType=""):
+        os.chdir("{}/{}/{}".format(self.outDir, simIndex, simType))
+        if os.path.isfile("squashed.nc") is False:
+            print("{}-{} not squashed. squashing now".format(simIndex, simType))
+            squashoutput(
+                outputname="squashed.nc", compress=True, complevel=1, quiet=True
+            )
         if self.gridFile is not None:
-            gridFile = fnmatch.filter(next(os.walk('./'))[2], '*profile*')[0]
+            gridFile = fnmatch.filter(next(os.walk("./"))[2], "*profile*")[0]
         else:
             gridFile = None
         print(gridFile)
         ds = open_boutdataset(
-            'squashed.nc',
+            "squashed.nc",
             gridfilepath=gridFile,
-            coordinates={'x': 'psi_pol', 'y': 'theta', 'z': 'zeta'},
-            geometry='toroidal')
-        if quant == 'all':
+            coordinates={"x": "psi_pol", "y": "theta", "z": "zeta"},
+            geometry="toroidal",
+        )
+        if quant == "all":
             quant2 = ds
         else:
             try:
                 quant2 = ds[quant]
-            except(KeyError):
-                quant2 = ds['t_array'].metadata[quant]
+            except (KeyError):
+                quant2 = ds["t_array"].metadata[quant]
         return np.squeeze(quant2)
 
-    def scanCollect(self, quant, simType='3-addC', subDirs=[]):
+    def scanCollect(self, quant, simType="3-addC", subDirs=[]):
         x = []
         if len(subDirs) == 0:
             subDirs = range(self.scanNum)
         else:
             subDirs = subDirs
-        if quant == 't_array':
+        if quant == "t_array":
             for i in subDirs:
-                tempTime = (self.collectData('t_array', i, simType)/int(
-                    self.collectData('Omega_ci', i, simType)))*1e3
+                tempTime = (
+                    self.collectData("t_array", i, simType)
+                    / int(self.collectData("Omega_ci", i, simType))
+                ) * 1e3
                 # print(tempTime[int(len(tempTime)/2)])
                 x.append(tempTime)
         else:
@@ -276,33 +282,34 @@ class analyse:
         for i in subDirs:
             a.append(self.collectData(simIndex=simIndex, simType=i))
 
-        c = xr.combine_nested(a, concat_dim='t')
+        c = xr.combine_nested(a, concat_dim="t")
 
         for i in list(c.data_vars):
-            c[i].attrs['metadata'] = a[0]['t_array'].attrs['metadata']
+            c[i].attrs["metadata"] = a[0]["t_array"].attrs["metadata"]
 
         return c
 
-    def showScanData(self, quant, simType, interval=5, filename='blah',
-                     movie=0, fps=5, dpi=300):
-        '''
+    def showScanData(
+        self, quant, simType, interval=5, filename="blah", movie=0, fps=5, dpi=300
+    ):
+        """
         can only be used on ypi laptop with ffmpeg installed
         gotta make sure path to dataDir is the laptop one
-        '''
-        if filename == 'blah':
-            filename = '{}-{}.mp4'.format(quant, simType)
+        """
+        if filename == "blah":
+            filename = "{}-{}.mp4".format(quant, simType)
         else:
             filename = filename
-        dataDir = self.dataDir.split('/')[1:-1]  # [4:]
-        newDir = ''
+        dataDir = self.dataDir.split("/")[1:-1]  # [4:]
+        newDir = ""
         for i in dataDir:
-            newDir += '/' + i
+            newDir += "/" + i
 
         quant = self.scanCollect(quant, simType)
         interval = slice(0, -1, interval)
         titles = self.scanParams
 
-        tme = self.scanCollect('t_array', simType)
+        tme = self.scanCollect("t_array", simType)
         times = []
         for i in tme:
             times.append(i.shape[0])
@@ -324,68 +331,72 @@ class analyse:
         # print(newTitles)
 
         if movie == 1:
-            vidDir = newDir + '/analysis/vid'
+            vidDir = newDir + "/analysis/vid"
             if os.path.isdir(vidDir) is not True:
                 os.mkdir(vidDir)
             os.chdir(vidDir)
 
         # return newQuant, newTitles, newTme
 
-        showdata(newQuant, titles=newTitles, t_array=newTme,
-                 movie=movie, fps=fps, dpi=dpi, cmap='plasma')
+        showdata(
+            newQuant,
+            titles=newTitles,
+            t_array=newTme,
+            movie=movie,
+            fps=fps,
+            dpi=dpi,
+            cmap="plasma",
+        )
 
         if movie == 1:
-            os.system('mv animation.mp4 {}'.format(filename))
+            os.system("mv animation.mp4 {}".format(filename))
 
     def plotGridContoursX(self, simIndex=0, yind=[], labels=[]):
         self.gridData(simIndex)
-        if ((len(labels) == 0) and (len(yind) == 0)):
+        if (len(labels) == 0) and (len(yind) == 0):
             yind = [self.outMid_idx, -1]
-            labels = ['Out Mid', 'Target']
+            labels = ["Out Mid", "Target"]
         for i in range(self.nx):
-            plt.plot(self.R[:, i], self.Z[:, i], linewidth=1,
-                     color='k', alpha=0.5)
+            plt.plot(self.R[:, i], self.Z[:, i], linewidth=1, color="k", alpha=0.5)
         for i, j in enumerate(yind):
-            plt.plot(self.R[:, j], self.Z[:, j],
-                     linewidth=4, label=labels[i])
+            plt.plot(self.R[:, j], self.Z[:, j], linewidth=4, label=labels[i])
         split_idx = [self.j11, self.j12, self.j21, self.j22]
         for i, j in enumerate(split_idx):
-            if i < len(split_idx)-1:
-                plt.plot(self.R[:, j], self.Z[:, j],
-                         linewidth=2, color='k')
-            elif i == len(split_idx)-1:
-                plt.plot(self.R[:, j], self.Z[:, j],
-                         linewidth=2, color='k', label='Splits')
+            if i < len(split_idx) - 1:
+                plt.plot(self.R[:, j], self.Z[:, j], linewidth=2, color="k")
+            elif i == len(split_idx) - 1:
+                plt.plot(
+                    self.R[:, j], self.Z[:, j], linewidth=2, color="k", label="Splits"
+                )
 
-        plt.xlabel('R (m)')
-        plt.ylabel('Z (m)')
+        plt.xlabel("R (m)")
+        plt.ylabel("Z (m)")
         plt.grid(False)
         plt.legend(bbox_to_anchor=[1, 0.5])
-        plt.axis('scaled')
+        plt.axis("scaled")
         plt.tight_layout()
         plt.show()
 
     def plotGridContoursY(self, simIndex=0, xind=[], labels=[]):
         self.gridData(simIndex)
-        if ((len(labels) == 0) and (len(xind) == 0)):
+        if (len(labels) == 0) and (len(xind) == 0):
             xind = [self.ix1]
-            labels = ['Seperatrix']
+            labels = ["Seperatrix"]
         for i in range(self.ny):
-            plt.plot(self.R[i, :], self.Z[i, :], linewidth=1,
-                     color='k', alpha=0.2)
+            plt.plot(self.R[i, :], self.Z[i, :], linewidth=1, color="k", alpha=0.2)
         for i, j in enumerate(xind):
-            plt.plot(self.R[j, :], self.Z[j, :],
-                     linewidth=2, label=labels[i])
-        plt.xlabel('R (m)')
-        plt.ylabel('Z (m)')
+            plt.plot(self.R[j, :], self.Z[j, :], linewidth=2, label=labels[i])
+        plt.xlabel("R (m)")
+        plt.ylabel("Z (m)")
         plt.grid(False)
         plt.legend(bbox_to_anchor=[1, 0.5])
-        plt.axis('scaled')
+        plt.axis("scaled")
         plt.tight_layout()
         plt.show()
 
-    def noRxScan(self, simType, quant, yind, tind=-1, norms=None,
-                 qlabels=None, ylabels=None):
+    def noRxScan(
+        self, simType, quant, yind, tind=-1, norms=None, qlabels=None, ylabels=None
+    ):
 
         # style.use('seaborn-whitegrid')
         qlen = len(quant)
@@ -411,7 +422,7 @@ class analyse:
         for i, j in enumerate(quant):
             tmp = self.scanCollect(j, simType)
             for k in range(len(tmp)):
-                tmp[k] = norms[i]*tmp[k]
+                tmp[k] = norms[i] * tmp[k]
             # tmp *= norms[i]*tmp
             quants.append(tmp)
 
@@ -420,68 +431,67 @@ class analyse:
         for qNum in range(qlen):
             for yNum, y in enumerate(yind):
                 if np.logical_and(qlen > 1, ylen > 1):
-                    a = eval('axs[qNum, yNum]')
+                    a = eval("axs[qNum, yNum]")
                 elif np.logical_and(qlen == 1, ylen > 1):
-                    a = eval('axs[yNum]')
+                    a = eval("axs[yNum]")
                 elif np.logical_and(qlen > 1, ylen == 1):
-                    a = eval('axs[qNum]')
+                    a = eval("axs[qNum]")
                 elif np.logical_and(qlen == 1, ylen == 1):
-                    a = eval('axs')
+                    a = eval("axs")
                 for i, q in enumerate(quants[qNum]):
                     # print(qNum, yNum)
-                    a.plot(q[tind, 2:-2, y],
-                           color=colors[i],
-                           label=self.scanParams[i])
-                    a.axvline(ix1, color='k',
-                              linestyle='--')
+                    a.plot(q[tind, 2:-2, y], color=colors[i], label=self.scanParams[i])
+                    a.axvline(ix1, color="k", linestyle="--")
                     # a.set_xlim([np.amin(np.array(Ry[yNum])),
                     #             np.amax(np.array(Ry[yNum]))])
-                    a.yaxis.set_major_formatter(
-                        FormatStrFormatter('%g'))
+                    a.yaxis.set_major_formatter(FormatStrFormatter("%g"))
 
         for i in range(ylen):
             if np.logical_and(qlen > 1, ylen > 1):
-                a = eval('axs[-1, i]')
+                a = eval("axs[-1, i]")
             elif np.logical_and(qlen == 1, ylen > 1):
-                a = eval('axs[i]')
+                a = eval("axs[i]")
             elif np.logical_and(qlen > 1, ylen == 1):
-                a = eval('axs[-1]')
+                a = eval("axs[-1]")
             elif np.logical_and(qlen == 1, ylen == 1):
-                a = eval('axs')
+                a = eval("axs")
             a.set_xlabel(ylabels[i])
 
-        for j in range(0, qlen-1):
+        for j in range(0, qlen - 1):
             for i in range(ylen):
                 if np.logical_and(qlen > 1, ylen > 1):
-                    a = eval('axs[j, i]')
+                    a = eval("axs[j, i]")
                 elif np.logical_and(qlen == 1, ylen > 1):
-                    a = eval('axs[i]')
+                    a = eval("axs[i]")
                 elif np.logical_and(qlen > 1, ylen == 1):
-                    a = eval('axs[j]')
+                    a = eval("axs[j]")
                 elif np.logical_and(qlen == 1, ylen == 1):
-                    a = eval('axs')
+                    a = eval("axs")
                 a.xaxis.set_ticklabels([])
                 # axs[j, i].xaxis.set_ticklabels([])
 
         for i in range(qlen):
             if np.logical_and(qlen > 1, ylen > 1):
-                a = eval('axs[i, 0]')
+                a = eval("axs[i, 0]")
             elif np.logical_and(qlen == 1, ylen > 1):
-                a = eval('axs[0]')
+                a = eval("axs[0]")
             elif np.logical_and(qlen > 1, ylen == 1):
-                a = eval('axs[i]')
+                a = eval("axs[i]")
             elif np.logical_and(qlen == 1, ylen == 1):
-                a = eval('axs')
+                a = eval("axs")
             a.set_ylabel(qlabels[i])
             # axs[i, 0].set_ylabel(qlabels[i])
 
         fig
-        plt.legend(loc='upper center', ncol=2,
-                   bbox_to_anchor=[0.5, 1],
-                   bbox_transform=plt.gcf().transFigure,
-                   # shadow=True,
-                   fancybox=True,
-                   title=self.title)
+        plt.legend(
+            loc="upper center",
+            ncol=2,
+            bbox_to_anchor=[0.5, 1],
+            bbox_transform=plt.gcf().transFigure,
+            # shadow=True,
+            fancybox=True,
+            title=self.title,
+        )
         # plt.tight_layout()
         plt.subplots_adjust(hspace=0.04)  # wspace=0
 
@@ -494,8 +504,9 @@ class analyse:
         # plt.close()
         # plt.cla()
 
-    def quantXScan(self, simType, quant, yind, tind=-1, norms=None,
-                   qlabels=None, ylabels=None):
+    def quantXScan(
+        self, simType, quant, yind, tind=-1, norms=None, qlabels=None, ylabels=None
+    ):
 
         # style.use('seaborn-whitegrid')
         qlen = len(quant)
@@ -525,7 +536,7 @@ class analyse:
         for i, j in enumerate(quant):
             tmp = self.scanCollect(j, simType)
             for k in range(len(tmp)):
-                tmp[k] = norms[i]*tmp[k]
+                tmp[k] = norms[i] * tmp[k]
             # tmp *= norms[i]*tmp
             quants.append(tmp)
 
@@ -534,68 +545,73 @@ class analyse:
         for qNum in range(qlen):
             for yNum, y in enumerate(yind):
                 if np.logical_and(qlen > 1, ylen > 1):
-                    a = eval('axs[qNum, yNum]')
+                    a = eval("axs[qNum, yNum]")
                 elif np.logical_and(qlen == 1, ylen > 1):
-                    a = eval('axs[yNum]')
+                    a = eval("axs[yNum]")
                 elif np.logical_and(qlen > 1, ylen == 1):
-                    a = eval('axs[qNum]')
+                    a = eval("axs[qNum]")
                 elif np.logical_and(qlen == 1, ylen == 1):
-                    a = eval('axs')
+                    a = eval("axs")
                 for i, q in enumerate(quants[qNum]):
                     # print(qNum, yNum)
-                    a.plot(Ry[yNum], q[tind, :, y],
-                           color=colors[i],
-                           label=self.scanParams[i])
-                    a.axvline(Ry[yNum][ix1], color='k',
-                              linestyle='--')
-                    a.set_xlim([np.amin(np.array(Ry[yNum])),
-                                np.amax(np.array(Ry[yNum]))])
-                    a.yaxis.set_major_formatter(
-                        FormatStrFormatter('%g'))
+                    a.plot(
+                        Ry[yNum],
+                        q[tind, :, y],
+                        color=colors[i],
+                        label=self.scanParams[i],
+                    )
+                    a.axvline(Ry[yNum][ix1], color="k", linestyle="--")
+                    a.set_xlim(
+                        [np.amin(np.array(Ry[yNum])), np.amax(np.array(Ry[yNum]))]
+                    )
+                    a.yaxis.set_major_formatter(FormatStrFormatter("%g"))
 
         for i in range(ylen):
             if np.logical_and(qlen > 1, ylen > 1):
-                a = eval('axs[-1, i]')
+                a = eval("axs[-1, i]")
             elif np.logical_and(qlen == 1, ylen > 1):
-                a = eval('axs[i]')
+                a = eval("axs[i]")
             elif np.logical_and(qlen > 1, ylen == 1):
-                a = eval('axs[-1]')
+                a = eval("axs[-1]")
             elif np.logical_and(qlen == 1, ylen == 1):
-                a = eval('axs')
+                a = eval("axs")
             a.set_xlabel(ylabels[i])
 
-        for j in range(0, qlen-1):
+        for j in range(0, qlen - 1):
             for i in range(ylen):
                 if np.logical_and(qlen > 1, ylen > 1):
-                    a = eval('axs[j, i]')
+                    a = eval("axs[j, i]")
                 elif np.logical_and(qlen == 1, ylen > 1):
-                    a = eval('axs[i]')
+                    a = eval("axs[i]")
                 elif np.logical_and(qlen > 1, ylen == 1):
-                    a = eval('axs[j]')
+                    a = eval("axs[j]")
                 elif np.logical_and(qlen == 1, ylen == 1):
-                    a = eval('axs')
+                    a = eval("axs")
                 a.xaxis.set_ticklabels([])
                 # axs[j, i].xaxis.set_ticklabels([])
 
         for i in range(qlen):
             if np.logical_and(qlen > 1, ylen > 1):
-                a = eval('axs[i, 0]')
+                a = eval("axs[i, 0]")
             elif np.logical_and(qlen == 1, ylen > 1):
-                a = eval('axs[0]')
+                a = eval("axs[0]")
             elif np.logical_and(qlen > 1, ylen == 1):
-                a = eval('axs[i]')
+                a = eval("axs[i]")
             elif np.logical_and(qlen == 1, ylen == 1):
-                a = eval('axs')
+                a = eval("axs")
             a.set_ylabel(qlabels[i])
             # axs[i, 0].set_ylabel(qlabels[i])
 
         fig
-        plt.legend(loc='upper center', ncol=2,
-                   bbox_to_anchor=[0.5, 1],
-                   bbox_transform=plt.gcf().transFigure,
-                   # shadow=True,
-                   fancybox=True,
-                   title=self.title)
+        plt.legend(
+            loc="upper center",
+            ncol=2,
+            bbox_to_anchor=[0.5, 1],
+            bbox_transform=plt.gcf().transFigure,
+            # shadow=True,
+            fancybox=True,
+            title=self.title,
+        )
         # plt.tight_layout()
         plt.subplots_adjust(hspace=0.04)  # wspace=0
 
@@ -608,14 +624,15 @@ class analyse:
         # plt.close()
         # plt.cla()
 
-    def quantYScan(self, simType, quant, xind, tind=-1, norms=None,
-                   qlabels=None, xlabels=None):
-        '''
+    def quantYScan(
+        self, simType, quant, xind, tind=-1, norms=None, qlabels=None, xlabels=None
+    ):
+        """
         simType: typically either 1-base, 2-AddN, 3-AddC, 4-addT
         quant: list of quantities to plot
         xind: list of x-indices
-        '''
-        style.use('seaborn-whitegrid')
+        """
+        style.use("seaborn-whitegrid")
         qlen = len(quant)
         xlen = len(xind)
 
@@ -643,20 +660,20 @@ class analyse:
         for i, j in enumerate(quant):
             tmp = self.scanCollect(j, simType)
             for k in range(len(tmp)):
-                tmp[k] = norms[i]*tmp[k]
+                tmp[k] = norms[i] * tmp[k]
             # tmp *= norms[i]*tmp
             quants.append(tmp)
 
         for qNum in range(qlen):
             for xNum, x in enumerate(xind):
                 if np.logical_and(qlen > 1, xlen > 1):
-                    a = eval('axs[qNum, xNum]')
+                    a = eval("axs[qNum, xNum]")
                 elif np.logical_and(qlen == 1, xlen > 1):
-                    a = eval('axs[xNum]')
+                    a = eval("axs[xNum]")
                 elif np.logical_and(qlen > 1, xlen == 1):
-                    a = eval('axs[qNum]')
+                    a = eval("axs[qNum]")
                 elif np.logical_and(qlen == 1, xlen == 1):
-                    a = eval('axs')
+                    a = eval("axs")
                 for i, q in enumerate(quants[qNum]):
                     # print(qNum, yNum)
                     # a.plot(Rx[xNum], q[tind, x, :],
@@ -666,58 +683,58 @@ class analyse:
                     #             np.amax(np.array(Rx[xNum]))])
                     # a.yaxis.set_major_formatter(
                     #     FormatStrFormatter('%g'))
-                    a.plot(q[tind, x, :],
-                           color=colors[i],
-                           label=self.scanParams[i])
-                    a.axvline(self.j12, color='k', linestyle='--')
-                    a.axvline(self.j11, color='k', linestyle='--')
-                    a.axvline(self.j22, color='k', linestyle='--')
-                    a.yaxis.set_major_formatter(
-                        FormatStrFormatter('%g'))
+                    a.plot(q[tind, x, :], color=colors[i], label=self.scanParams[i])
+                    a.axvline(self.j12, color="k", linestyle="--")
+                    a.axvline(self.j11, color="k", linestyle="--")
+                    a.axvline(self.j22, color="k", linestyle="--")
+                    a.yaxis.set_major_formatter(FormatStrFormatter("%g"))
 
         for i in range(xlen):
             if np.logical_and(qlen > 1, xlen > 1):
-                a = eval('axs[-1, i]')
+                a = eval("axs[-1, i]")
             elif np.logical_and(qlen == 1, xlen > 1):
-                a = eval('axs[i]')
+                a = eval("axs[i]")
             elif np.logical_and(qlen > 1, xlen == 1):
-                a = eval('axs[-1]')
+                a = eval("axs[-1]")
             elif np.logical_and(qlen == 1, xlen == 1):
-                a = eval('axs')
+                a = eval("axs")
             a.set_xlabel(xlabels[i])
 
-        for j in range(0, qlen-1):
+        for j in range(0, qlen - 1):
             for i in range(xlen):
                 if np.logical_and(qlen > 1, xlen > 1):
-                    a = eval('axs[j, i]')
+                    a = eval("axs[j, i]")
                 elif np.logical_and(qlen == 1, xlen > 1):
-                    a = eval('axs[i]')
+                    a = eval("axs[i]")
                 elif np.logical_and(qlen > 1, xlen == 1):
-                    a = eval('axs[j]')
+                    a = eval("axs[j]")
                 elif np.logical_and(qlen == 1, xlen == 1):
-                    a = eval('axs')
+                    a = eval("axs")
                 a.xaxis.set_ticklabels([])
                 # axs[j, i].xaxis.set_ticklabels([])
 
         for i in range(qlen):
             if np.logical_and(qlen > 1, xlen > 1):
-                a = eval('axs[i, 0]')
+                a = eval("axs[i, 0]")
             elif np.logical_and(qlen == 1, xlen > 1):
-                a = eval('axs[0]')
+                a = eval("axs[0]")
             elif np.logical_and(qlen > 1, xlen == 1):
-                a = eval('axs[i]')
+                a = eval("axs[i]")
             elif np.logical_and(qlen == 1, xlen == 1):
-                a = eval('axs')
+                a = eval("axs")
             a.set_ylabel(qlabels[i])
             # axs[i, 0].set_ylabel(qlabels[i])
 
         fig
-        plt.legend(loc='upper center', ncol=2,
-                   bbox_to_anchor=[0.5, 1],
-                   bbox_transform=plt.gcf().transFigure,
-                   # shadow=True,
-                   fancybox=True,
-                   title=self.title)
+        plt.legend(
+            loc="upper center",
+            ncol=2,
+            bbox_to_anchor=[0.5, 1],
+            bbox_transform=plt.gcf().transFigure,
+            # shadow=True,
+            fancybox=True,
+            title=self.title,
+        )
         # plt.tight_layout()
         plt.subplots_adjust(hspace=0.04)  # wspace=0
 
@@ -732,18 +749,18 @@ class analyse:
 
     def neConv(self, simIndex, subDir=[], split=False):
         try:
-            os.chdir('{}/{}'.format(self.outDir, simIndex))
-            test = 'data'
-        except(FileNotFoundError):
-            os.chdir('{}/{}'.format(self.outDir, simIndex))
-            test = 'blah'
+            os.chdir("{}/{}".format(self.outDir, simIndex))
+            test = "data"
+        except (FileNotFoundError):
+            os.chdir("{}/{}".format(self.outDir, simIndex))
+            test = "blah"
         if len(subDir) == 0:
-            if test == 'blah':
-                subDirs = ['1-base']
-                tmp = next(os.walk('./'))[1]
-            elif test == 'data':
+            if test == "blah":
+                subDirs = ["1-base"]
+                tmp = next(os.walk("./"))[1]
+            elif test == "data":
                 subDirs = []
-                tmp = next(os.walk('./'))[1]
+                tmp = next(os.walk("./"))[1]
             tmp.sort()
             for i in tmp:
                 subDirs.append(i)
@@ -758,15 +775,17 @@ class analyse:
         ne = []
         tme = []
         for i in subDirs:
-            ne.append(self.collectData('Ne', simIndex=simIndex, simType=i))
-            tme.append(self.collectData('t_array', simIndex=simIndex,
-                                        simType=i)/(95777791/1e6))
+            ne.append(self.collectData("Ne", simIndex=simIndex, simType=i))
+            tme.append(
+                self.collectData("t_array", simIndex=simIndex, simType=i)
+                / (95777791 / 1e6)
+            )
 
         neAll = concatenate(ne)
         tmeAll = concatenate(tme)
 
         ix1 = self.ix1
-        mid = int(0.5*(self.j12+self.j22))
+        mid = int(0.5 * (self.j12 + self.j22))
 
         for i in range(len(subDirs)):
             tmp = fig.add_subplot(grid[0, i])
@@ -774,7 +793,7 @@ class analyse:
             tmp.set_title(subDirs[i])
 
         tmp = fig.add_subplot(grid[1, :])
-        tmp.plot(tmeAll, neAll[:, ix1, mid], 'ro', markersize=1)
+        tmp.plot(tmeAll, neAll[:, ix1, mid], "ro", markersize=1)
 
         tme_cutoffs = []
         for i in range(len(tme)):
@@ -782,19 +801,18 @@ class analyse:
         tme_cutoffs = np.cumsum(tme_cutoffs)
 
         for j in range(len(tme) - 1):
-            tmp.axvline(tmeAll[tme_cutoffs[j]], color='k',
-                        linestyle='--')
+            tmp.axvline(tmeAll[tme_cutoffs[j]], color="k", linestyle="--")
 
-        tmp.set_xlabel(r'Time ($m s$)')
-        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+        tmp.set_xlabel(r"Time ($m s$)")
+        tmp.set_ylabel(r"N$_{e}$ ($x10^{19} m^{-3}$)")
 
         plt.show()
 
     def PItest(self, subDir=[], simIndex=[], xinds=[]):
         if len(subDir) == 0:
-            subDirs = ['']
-            os.chdir('{}/{}'.format(self.outDir, 0))
-            tmp = next(os.walk('./'))[1]
+            subDirs = [""]
+            os.chdir("{}/{}".format(self.outDir, 0))
+            tmp = next(os.walk("./"))[1]
             tmp.sort()
             for i in tmp:
                 subDirs.append(i)
@@ -812,12 +830,12 @@ class analyse:
         ne = []
         tme = []
         for i in subDirs:
-            tmp_ne = self.scanCollect('Ne', i, simIndex)
+            tmp_ne = self.scanCollect("Ne", i, simIndex)
             y_avg_ne = []
             for j in tmp_ne:
                 y_avg_ne.append(np.mean(j, axis=2))
             ne.append(y_avg_ne)
-            tme.append(self.scanCollect('t_array', i, simIndex))
+            tme.append(self.scanCollect("t_array", i, simIndex))
 
         ne_all = []
         tme_all = []
@@ -827,30 +845,29 @@ class analyse:
             for j in range(len(ne)):
                 nec.append(ne[j][i])
                 tmec.append(tme[j][i])
-            ne_all.append(10*concatenate(nec))
-            tme_all.append(10*concatenate(tmec))
+            ne_all.append(10 * concatenate(nec))
+            tme_all.append(10 * concatenate(tmec))
 
-        dx = self.collectData('dx')
-        dy = self.collectData('dy')
-        J = self.collectData('J')
+        dx = self.collectData("dx")
+        dy = self.collectData("dy")
+        J = self.collectData("J")
 
         # sum_ne = []
-        # for i in 
+        # for i in
 
         avg_tme_cutoffs = []
-        for i in range(len(tme)-1):
+        for i in range(len(tme) - 1):
             a = 0
             for j in tme[i]:
                 a += len(j)
-            avg_tme_cutoffs.append(int(a/len(tme[0])))
+            avg_tme_cutoffs.append(int(a / len(tme[0])))
         avg_tme_cutoffs = np.cumsum(avg_tme_cutoffs)
 
         for x in range(len(xinds)):
             tmp = fig.add_subplot(grid[x, :])
             for j in range(len(ne[0])):
-                tmp.plot(tme_all[j], ne_all[j][:, xinds[x]],
-                         label=self.scanParams[j])
-                tmp.set_ylabel('x-index: {}'.format(xinds[x]))
+                tmp.plot(tme_all[j], ne_all[j][:, xinds[x]], label=self.scanParams[j])
+                tmp.set_ylabel("x-index: {}".format(xinds[x]))
 
         # if split is True:
         #     tmp = fig.add_subplot(grid[1, :])
@@ -861,28 +878,30 @@ class analyse:
         #     tmp.plot(tme_all[j], ne_all[j][:, ix1, mid],
         #              label=self.scanParams[j])
 
-        for i in range(len(tme)-1):
-            tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
-                        linestyle='--')
-        tmp.set_xlabel(r'Time ($m s$) '+'x-index: {}'.format(xinds[-1]))
-        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+        for i in range(len(tme) - 1):
+            tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color="k", linestyle="--")
+        tmp.set_xlabel(r"Time ($m s$) " + "x-index: {}".format(xinds[-1]))
+        tmp.set_ylabel(r"N$_{e}$ ($x10^{19} m^{-3}$)")
 
         fig
-        plt.legend(loc='upper center', ncol=2,
-                   bbox_to_anchor=[0.4, 1],
-                   bbox_transform=plt.gcf().transFigure,
-                   borderaxespad=0.0,
-                   # shadow=True,
-                   fancybox=True,
-                   title=self.title)
+        plt.legend(
+            loc="upper center",
+            ncol=2,
+            bbox_to_anchor=[0.4, 1],
+            bbox_transform=plt.gcf().transFigure,
+            borderaxespad=0.0,
+            # shadow=True,
+            fancybox=True,
+            title=self.title,
+        )
 
         plt.show()
 
     def neScanConv(self, subDir=[], simIndex=[], split=False):
         if len(subDir) == 0:
-            subDirs = ['']
-            os.chdir('{}/{}'.format(self.outDir, 0))
-            tmp = next(os.walk('./'))[1]
+            subDirs = [""]
+            os.chdir("{}/{}".format(self.outDir, 0))
+            tmp = next(os.walk("./"))[1]
             tmp.sort()
             for i in tmp:
                 subDirs.append(i)
@@ -907,8 +926,8 @@ class analyse:
         ne = []
         tme = []
         for i in subDirs:
-            ne.append(self.scanCollect('Ne', i, simIndex))
-            tme.append(self.scanCollect('t_array', i, simIndex))
+            ne.append(self.scanCollect("Ne", i, simIndex))
+            tme.append(self.scanCollect("t_array", i, simIndex))
 
         ne_all = []
         tme_all = []
@@ -918,8 +937,8 @@ class analyse:
             for j in range(len(ne)):
                 nec.append(ne[j][i])
                 tmec.append(tme[j][i])
-            ne_all.append(10*concatenate(nec))
-            tme_all.append(10*concatenate(tmec))
+            ne_all.append(10 * concatenate(nec))
+            tme_all.append(10 * concatenate(tmec))
 
         if split is True:
             for i in range(len(ne)):
@@ -929,11 +948,11 @@ class analyse:
                 tmp.set_title(subDirs[i])
 
         avg_tme_cutoffs = []
-        for i in range(len(tme)-1):
+        for i in range(len(tme) - 1):
             a = 0
             for j in tme[i]:
                 a += len(j)
-            avg_tme_cutoffs.append(int(a/len(tme[0])))
+            avg_tme_cutoffs.append(int(a / len(tme[0])))
         avg_tme_cutoffs = np.cumsum(avg_tme_cutoffs)
 
         if split is True:
@@ -942,39 +961,40 @@ class analyse:
             tmp = fig.add_subplot(grid[0, :])
 
         for j in range(len(ne[0])):
-            tmp.plot(tme_all[j], ne_all[j][:, ix1, mid],
-                     label=self.scanParams[j])
+            tmp.plot(tme_all[j], ne_all[j][:, ix1, mid], label=self.scanParams[j])
 
-        for i in range(len(tme)-1):
-            tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color='k',
-                        linestyle='--')
-        tmp.set_xlabel(r'Time ($m s$)')
-        tmp.set_ylabel(r'N$_{e}$ ($x10^{19} m^{-3}$)')
+        for i in range(len(tme) - 1):
+            tmp.axvline(tme_all[0][avg_tme_cutoffs[i]], color="k", linestyle="--")
+        tmp.set_xlabel(r"Time ($m s$)")
+        tmp.set_ylabel(r"N$_{e}$ ($x10^{19} m^{-3}$)")
 
         fig
-        plt.legend(loc='upper center', ncol=2,
-                   bbox_to_anchor=[0.4, 1],
-                   bbox_transform=plt.gcf().transFigure,
-                   borderaxespad=0.0,
-                   # shadow=True,
-                   fancybox=True,
-                   title=self.title)
+        plt.legend(
+            loc="upper center",
+            ncol=2,
+            bbox_to_anchor=[0.4, 1],
+            bbox_transform=plt.gcf().transFigure,
+            borderaxespad=0.0,
+            # shadow=True,
+            fancybox=True,
+            title=self.title,
+        )
 
         plt.show()
 
-    def plotTargetFlux(self, fType='peak', subDirs=[], simType='3-addC'):
-        tmp_nvi = self.scanCollect(quant='NVi', simType=simType, subDirs=subDirs)
-        dx = self.scanCollect(quant='dx', simType=simType, subDirs=subDirs)
-        dy = self.scanCollect(quant='dy', simType=simType, subDirs=subDirs)
-        J = self.scanCollect(quant='J', simType=simType, subDirs=subDirs)
+    def plotTargetFlux(self, fType="peak", subDirs=[], simType="3-addC"):
+        tmp_nvi = self.scanCollect(quant="NVi", simType=simType, subDirs=subDirs)
+        dx = self.scanCollect(quant="dx", simType=simType, subDirs=subDirs)
+        dy = self.scanCollect(quant="dy", simType=simType, subDirs=subDirs)
+        J = self.scanCollect(quant="J", simType=simType, subDirs=subDirs)
         if len(subDirs) == 0:
             subDirs = range(len(self.scanParams))
         else:
             subDirs = subDirs
-        if self.title == 'grid':
+        if self.title == "grid":
             nu = []
             for i in subDirs:
-                nu.append(eval(self.scanParams[i].split('e')[-2][2:]))
+                nu.append(eval(self.scanParams[i].split("e")[-2][2:]))
         else:
             nu = []
             for i in subDirs:
@@ -984,56 +1004,62 @@ class analyse:
         for i in range(len(subDirs)):
             # nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, 2] +
             #                                   tmp_nvi[i][-1, :, 3]))
-            nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, -3] +
-                                              tmp_nvi[i][-1, :, -2]))
+            nvi.append(
+                1e20 * 95777791 * 0.5 * (tmp_nvi[i][-1, :, -3] + tmp_nvi[i][-1, :, -2])
+            )
             pk_idx.append(np.where(nvi[-1] == np.amax(nvi[-1]))[0][0])
 
-        if fType == 'peak':
+        if fType == "peak":
             for i in range(len(subDirs)):
                 plt.scatter(nu[i], nvi[i][pk_idx[i]], s=50)
-            plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
-        elif fType == 'integrated':
+            plt.ylabel(r"Peak target flux [m$^{-2}$s$^{-1}$]")
+        elif fType == "integrated":
             nvi_int = []
             for i in range(len(subDirs)):
                 a = 0
                 for j in range(nvi[i].shape[1]):
-                    a += tmp_nvi[i][-1, j, -2]*J[i][j, -2] * dx[i][j, -2] \
+                    a += (
+                        tmp_nvi[i][-1, j, -2]
+                        * J[i][j, -2]
+                        * dx[i][j, -2]
                         * dy[i][j, -2]
+                    )
                 nvi_int.append(a * 1e20 * 95777791)
                 plt.scatter(nu[i], nvi_int[i], s=50)
-            plt.ylabel(r'Integrated target flux [m$^{-2}$s$^{-1}$]')
+            plt.ylabel(r"Integrated target flux [m$^{-2}$s$^{-1}$]")
             nvi = nvi_int
-        elif fType == 't_average':
+        elif fType == "t_average":
             prev_t = 300
             nvi_tAverage = []
             pk_idx = []
             for i in range(len(subDirs)):
-                tmp = np.mean(tmp_nvi[i][-prev_t:, :, -3], axis=0) \
-                    + np.mean(tmp_nvi[i][-prev_t:, :, -2], axis=0)
+                tmp = np.mean(tmp_nvi[i][-prev_t:, :, -3], axis=0) + np.mean(
+                    tmp_nvi[i][-prev_t:, :, -2], axis=0
+                )
                 nvi_tAverage.append(tmp * 0.5 * 95777791e20)
-                pk_idx.append(np.where(nvi_tAverage[-1] ==
-                                       np.amax(nvi_tAverage[-1]))[0][0])
+                pk_idx.append(
+                    np.where(nvi_tAverage[-1] == np.amax(nvi_tAverage[-1]))[0][0]
+                )
                 plt.scatter(nu[i], nvi_tAverage[i][pk_idx[i]], s=50)
-            plt.ylabel(r'time averaged target flux [m$^{-2}$s$^{-1}$]')
+            plt.ylabel(r"time averaged target flux [m$^{-2}$s$^{-1}$]")
             nvi = nvi_tAverage
         else:
             print('please select "integrated"/"peak"/"t_average"')
-        plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
+        plt.xlabel(r"Separatrix density [$\times 10^{19}$m$^{-3}$]")
         plt.show()
 
         return nu, nvi, pk_idx
 
-    def plotPeakTargetFlux(self, subDirs=[], simType='3-addC'):
-        tmp_nvi = self.scanCollect(quant='NVi', simType=simType,
-                                   subDirs=subDirs)
+    def plotPeakTargetFlux(self, subDirs=[], simType="3-addC"):
+        tmp_nvi = self.scanCollect(quant="NVi", simType=simType, subDirs=subDirs)
         if len(subDirs) == 0:
             subDirs = range(len(self.scanParams))
         else:
             subDirs = subDirs
-        if self.title == 'grid':
+        if self.title == "grid":
             nu = []
             for i in subDirs:
-                nu.append(eval(self.scanParams[i].split('e')[1][2:]))
+                nu.append(eval(self.scanParams[i].split("e")[1][2:]))
         else:
             nu = []
             for i in subDirs:
@@ -1043,29 +1069,29 @@ class analyse:
         for i in range(len(subDirs)):
             # nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, 2] +
             #                                   tmp_nvi[i][-1, :, 3]))
-            nvi.append(1e20 * 95777791 * 0.5*(tmp_nvi[i][-1, :, -3] +
-                                              tmp_nvi[i][-1, :, -2]))
+            nvi.append(
+                1e20 * 95777791 * 0.5 * (tmp_nvi[i][-1, :, -3] + tmp_nvi[i][-1, :, -2])
+            )
             pk_idx.append(np.where(nvi[-1] == np.amax(nvi[-1]))[0][0])
 
         for i in range(len(subDirs)):
             plt.scatter(nu[i], nvi[i][pk_idx[i]], s=50)
-        plt.ylabel(r'Peak target flux [m$^{-2}$s$^{-1}$]')
-        plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
+        plt.ylabel(r"Peak target flux [m$^{-2}$s$^{-1}$]")
+        plt.xlabel(r"Separatrix density [$\times 10^{19}$m$^{-3}$]")
         plt.show()
 
         return nu, nvi, pk_idx
 
-    def plotPeakTargetTe(self, subDirs=[], simType='3-addC'):
-        tmp_te = self.scanCollect(quant='Telim', simType=simType,
-                                  subDirs=subDirs)
+    def plotPeakTargetTe(self, subDirs=[], simType="3-addC"):
+        tmp_te = self.scanCollect(quant="Telim", simType=simType, subDirs=subDirs)
         if len(subDirs) == 0:
             subDirs = range(len(self.scanParams))
         else:
             subDirs = subDirs
-        if self.title == 'grid':
+        if self.title == "grid":
             nu = []
             for i in subDirs:
-                nu.append(eval(self.scanParams[i].split('e')[1][2:]))
+                nu.append(eval(self.scanParams[i].split("e")[1][2:]))
         else:
             nu = []
             for i in subDirs:
@@ -1078,23 +1104,36 @@ class analyse:
 
         for i in range(len(subDirs)):
             plt.scatter(nu[i], te[i][pk_idx[i]], s=50)
-        plt.ylabel(r'Peak target $T_{e}$ [eV]')
-        plt.xlabel(r'Separatrix density [$\times 10^{19}$m$^{-3}$]')
+        plt.ylabel(r"Peak target $T_{e}$ [eV]")
+        plt.xlabel(r"Separatrix density [$\times 10^{19}$m$^{-3}$]")
         plt.show()
 
         return nu, te, pk_idx
 
-    def xPlot(self, quant, simIndex=0, simType='3-addC',
-              tvals=[], xvals=[], yvals=[]):
+    def xPlot(self, quant, simIndex=0, simType="3-addC", tvals=[], xvals=[], yvals=[]):
         quant = self.collectData(quant, simIndex, simType)
         if len(tvals) == 0:
             tvals = [None, None, 1]
-        quant.isel(zeta=0, t=slice(tvals[0], tvals[1], tvals[2]), )
+        quant.isel(
+            zeta=0, t=slice(tvals[0], tvals[1], tvals[2]),
+        )
 
-    def scanimate(self, quant, scanIds=[], simType='3-addC', frames=1,
-                  animate_over='t', save_as=None, show=False, fps=10,
-                  nrows=None, ncols=None, poloidal_plot=True,
-                  subplots_adjust=None, **kwargs):
+    def scanimate(
+        self,
+        quant,
+        scanIds=[],
+        simType="3-addC",
+        frames=1,
+        animate_over="t",
+        save_as=None,
+        show=False,
+        fps=10,
+        nrows=None,
+        ncols=None,
+        poloidal_plot=True,
+        subplots_adjust=None,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -1114,15 +1153,14 @@ class analyse:
 
         if nrows is None and ncols is None:
             ncols = int(np.ceil(np.sqrt(nvars)))
-            nrows = int(np.ceil(nvars/ncols))
+            nrows = int(np.ceil(nvars / ncols))
         elif nrows is None:
-            nrows = int(np.ceil(nvars/ncols))
+            nrows = int(np.ceil(nvars / ncols))
         elif ncols is None:
-            ncols = int(np.ceil(nvars/nrows))
+            ncols = int(np.ceil(nvars / nrows))
         else:
-            if nrows*ncols < nvars:
-                raise ValueError(
-                    'Not enough rows*columns to fit all variables')
+            if nrows * ncols < nvars:
+                raise ValueError("Not enough rows*columns to fit all variables")
 
         fig, axes = plt.subplots(nrows, ncols, squeeze=False)
 
@@ -1149,127 +1187,177 @@ class analyse:
             # print(ax.title)
 
             if ndims == 2:
-                blocks.append(animate_line(data=data, ax=ax,
-                                           animate_over=animate_over,
-                                           animate=False, **kwargs))
+                blocks.append(
+                    animate_line(
+                        data=data,
+                        ax=ax,
+                        animate_over=animate_over,
+                        animate=False,
+                        **kwargs
+                    )
+                )
             elif ndims == 3:
                 if poloidal_plot:
-                    var_blocks = animate_poloidal(data, ax=ax,
-                                                  animate_over=animate_over,
-                                                  animate=False,
-                                                  title=j, **kwargs)
+                    var_blocks = animate_poloidal(
+                        data,
+                        ax=ax,
+                        animate_over=animate_over,
+                        animate=False,
+                        title=j,
+                        **kwargs
+                    )
                     for block in var_blocks:
                         blocks.append(block)
                 else:
-                    blocks.append(animate_pcolormesh(data=data, ax=ax,
-                                                     animate_over=animate_over,
-                                                     animate=False, **kwargs))
+                    blocks.append(
+                        animate_pcolormesh(
+                            data=data,
+                            ax=ax,
+                            animate_over=animate_over,
+                            animate=False,
+                            **kwargs
+                        )
+                    )
             else:
-                raise ValueError("Unsupported number of dimensions "
-                                 + str(ndims) + ". Dims are " + str(v.dims))
+                raise ValueError(
+                    "Unsupported number of dimensions "
+                    + str(ndims)
+                    + ". Dims are "
+                    + str(v.dims)
+                )
 
         timeline = amp.Timeline(np.arange(v.sizes[animate_over]), fps=fps)
         anim = amp.Animation(blocks, timeline)
-        anim.controls(timeline_slider_args={'text': animate_over})
+        anim.controls(timeline_slider_args={"text": animate_over})
 
         if save_as is not None:
-            anim.save(save_as + '.gif', writer='imagemagick')
+            anim.save(save_as + ".gif", writer="imagemagick")
 
         if show:
             plt.show()
 
         return anim
 
-    def calcPsol(self, simIndex=0, simType='3-addC'):
-        spe = self.scanCollect('Spe', simType)[simIndex][-1, :, :]
-        spi = self.scanCollect('Spi', simType)[simIndex][-1, :, :]
-        J = self.scanCollect('J', simType)[simIndex]
-        dx = self.scanCollect('dx', simType)[simIndex]
-        dy = self.scanCollect('dy', simType)[simIndex]
-        dz = 2*np.pi
+    def calcPsol(self, simIndex=0, simType="3-addC"):
+        spe = self.scanCollect("Spe", simType)[simIndex][-1, :, :]
+        spi = self.scanCollect("Spi", simType)[simIndex][-1, :, :]
+        J = self.scanCollect("J", simType)[simIndex]
+        dx = self.scanCollect("dx", simType)[simIndex]
+        dy = self.scanCollect("dy", simType)[simIndex]
+        dz = 2 * np.pi
         Psol_e = 0
         Psol_i = 0
         for i in range(self.nx):
             for j in range(self.ny):
-                Psol_e += spe[i][j]*J[i][j]*dx[i][j]*dy[i][j]*dz
-                Psol_i += spi[i][j]*J[i][j]*dx[i][j]*dy[i][j]*dz
-        Psol_e *= 3/2
-        Psol_i *= 3/2
+                Psol_e += spe[i][j] * J[i][j] * dx[i][j] * dy[i][j] * dz
+                Psol_i += spi[i][j] * J[i][j] * dx[i][j] * dy[i][j] * dz
+        Psol_e *= 3 / 2
+        Psol_i *= 3 / 2
         return Psol_e + Psol_i
 
-    def calc_qPar(self, simIndex=0, simType='3-addC'):
-        if simType == '1-base':
-            os.chdir('{}/{}'.format(self.outDir, simIndex))
+    def calc_qPar(self, simIndex=0, simType="3-addC"):
+        if simType == "1-base":
+            os.chdir("{}/{}".format(self.outDir, simIndex))
         else:
-            os.chdir('{}/{}/{}'.format(self.outDir, simIndex, simType))
+            os.chdir("{}/{}/{}".format(self.outDir, simIndex, simType))
         try:
-            datFile = DataFile('squashed.nc')
-        except(FileNotFoundError):
-            print('data not squashed')
-            datFile = DataFile('BOUT.dmp.0.nc')
-        Tnorm = float(datFile['Tnorm'])
-        Nnorm = float(datFile['Nnorm'])
+            datFile = DataFile("squashed.nc")
+        except (FileNotFoundError):
+            print("data not squashed")
+            datFile = DataFile("BOUT.dmp.0.nc")
+        Tnorm = float(datFile["Tnorm"])
+        Nnorm = float(datFile["Nnorm"])
         gamma_e = 4
         gamma_i = 2.5
         mi = 3.34524e-27  # 2*Mp - deuterium
         e = 1.6e-19
-        Te = self.collectData('Telim', simIndex, simType)[-1, :, -1]*Tnorm
-        Ti = self.collectData('Tilim', simIndex, simType)[-1, :, -1]*Tnorm
-        n = self.collectData('Ne', simIndex, simType)[-1, :, -1]*Nnorm
-        Cs = np.sqrt(Te + (5/3)*Ti)*np.sqrt(e/mi)
+        Te = self.collectData("Telim", simIndex, simType)[-1, :, -1] * Tnorm
+        Ti = self.collectData("Tilim", simIndex, simType)[-1, :, -1] * Tnorm
+        n = self.collectData("Ne", simIndex, simType)[-1, :, -1] * Nnorm
+        Cs = np.sqrt(Te + (5 / 3) * Ti) * np.sqrt(e / mi)
         q_e = gamma_e * n * e * Te * Cs
         q_i = gamma_i * n * e * Ti * Cs
         return q_e + q_i
 
-    def centreNormalZ(self, simIndex=0, simType='3-addC'):
+    def centreNormalZ(self, simIndex=0, simType="3-addC"):
         self.gridData(simIndex)
         RsepOMP = self.R[self.ix1, self.outMid_idx]
         RsepTar = self.R[self.ix1, -1]
-        Bp = self.collectData('Bpxy', simIndex, simType)
+        Bp = self.collectData("Bpxy", simIndex, simType)
         BpSepOMP = Bp[self.ix1, self.outMid_idx]
         BpSepTar = Bp[self.ix1, -1]
         fx = (RsepOMP * BpSepOMP) / (RsepTar * BpSepTar)
         self.fx = fx
         zSep = self.Z[self.ix1, -1]
-        s = (self.Z[:, -1] - zSep)
+        s = self.Z[:, -1] - zSep
         return s
 
     def eich(self, x, qbg, q0, lambda_q, S):
-        scale = (q0/2)
-        exp = np.exp(((S/(2*lambda_q))**2) - (x/(lambda_q*self.fx)))
-        erf = erfc((S/(2*lambda_q)) - (x/(S*self.fx)))
+        scale = q0 / 2
+        exp = np.exp(((S / (2 * lambda_q)) ** 2) - (x / (lambda_q * self.fx)))
+        erf = erfc((S / (2 * lambda_q)) - (x / (S * self.fx)))
         q = (scale * exp * erf) + qbg
         return q
 
 
 def eich(x, qbg, q0, lambda_q, S):
     fx = 3.369536
-    scale = (q0/2)
-    exp = np.exp(((S/(2*lambda_q))**2) - (x/(lambda_q*fx)))
-    erf = erfc((S/(2*lambda_q)) - (x/(S*fx)))
+    scale = q0 / 2
+    exp = np.exp(((S / (2 * lambda_q)) ** 2) - (x / (lambda_q * fx)))
+    erf = erfc((S / (2 * lambda_q)) - (x / (S * fx)))
     q = (scale * exp * erf) + qbg
     return q
 
 
 def exp(x, q0, lambda_q):
-    y = q0*np.exp(-x/lambda_q) + 0.25
+    y = q0 * np.exp(-x / lambda_q) + 0.25
     return y
 
 
 if __name__ == "__main__":
-    font = {'family': 'normal',
-            'weight': 'normal',
-            'size': 14}
-    matplotlib.rc('font', **font)
+    font = {"family": "normal", "weight": "normal", "size": 14}
+    matplotlib.rc("font", **font)
 
-    dateDir = '/home/hm1234/Documents/Project/remotefs/viking/'\
-        'TCV/longtime/cfrac-10-06-19_175728'
+    dateDir = (
+        "/home/hm1234/Documents/Project/remotefs/viking/"
+        "TCV/longtime/cfrac-10-06-19_175728"
+    )
 
-    q_ids = ['t_array', 'Telim', 'Rzrad', 'J', 'dx', 'dy', 'dz',
-             'Sn', 'Spe', 'Spi', 'Nn', 'Tilim', 'Pi', 'NVn', 'Vort',
-             'phi', 'NVi', 'VePsi', 'Omega_ci', 'Ve', 'Pe', 'Nnorm',
-             'Tnorm', 'Cs0', 'Ne', 'Qi', 'S', 'F', 'Rp', 'Pn',
-             'PeSource', 'PiSource', 'NeSource']
+    q_ids = [
+        "t_array",
+        "Telim",
+        "Rzrad",
+        "J",
+        "dx",
+        "dy",
+        "dz",
+        "Sn",
+        "Spe",
+        "Spi",
+        "Nn",
+        "Tilim",
+        "Pi",
+        "NVn",
+        "Vort",
+        "phi",
+        "NVi",
+        "VePsi",
+        "Omega_ci",
+        "Ve",
+        "Pe",
+        "Nnorm",
+        "Tnorm",
+        "Cs0",
+        "Ne",
+        "Qi",
+        "S",
+        "F",
+        "Rp",
+        "Pn",
+        "PeSource",
+        "PiSource",
+        "NeSource",
+    ]
     # q_ids = ['Ne']
 
     # cScan = analyse('/users/hm1234/scratch/TCV/'
@@ -1293,13 +1381,67 @@ if __name__ == "__main__":
     # x = squashData('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
     # x.saveData
 
-    qlabels = ['Telim', 'Ne']
+    qlabels = ["Telim", "Ne"]
 
-    x = squashData('/home/hm1234/Documents/Project/archer/test2/gridTest-28-03-20_181830/')
-    x.saveData()
-    x = squashData('/home/hm1234/Documents/Project/archer/test2/gridTest-29-03-20_140253/')
-    x.saveData()
+    # x = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/3D/july/manmix-02-07-20_155914"
+    # )
 
+    # x = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/63127-15-07-20_193445"
+    # )
+    # x.saveData()
+    # x = squashData(
+    #     "/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D/july/63161-15-07-20_192619"
+    # )
+    # x.saveData()
+    # x = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/s2-63161-15-07-20_194136"
+    # )
+    # x.saveData()
+    # x = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/s2-63127-15-07-20_194136"
+    # )
+    # x.saveData()
+
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/s4-63127-16-07-20_232255"
+    # )
+    # j2.saveData()
+
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/s2-63127-16-07-20_232221"
+    # )
+    # j2.saveData()
+
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/s2-63161-16-07-20_232147"
+    # )
+    # j2.saveData()
+
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63127-30-07-20_180810"
+    # )
+    # j2.saveData()
+
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63161-30-07-20_184953"
+    # )
+    # j2.saveData()
+
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63127-11-09-20_190916")
+    # a.saveData()
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63161-12-09-20_113531")
+    # a.saveData()
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/3D/sep/sheath4-12-09-20_121337")
+    # a.saveData()
+
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63127-21-09-20_164717")
+    # a.saveData()
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63161-21-09-20_164648")
+    # a.saveData()
+    a = squashData("/marconi/home/userexternal/hmuhamme/work/3D/sep/sheath4-12-09-20_121337")
+    a.saveData()
     # # d = newDScan
     # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
@@ -1515,4 +1657,3 @@ if __name__ == "__main__":
 #          17743.42474937771,
 #          19521.725240498683,
 #          22067.063032837716]
-

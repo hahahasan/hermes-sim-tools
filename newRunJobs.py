@@ -1,16 +1,15 @@
+from boutdata.restart import addvar
+from boutdata.restart import addnoise
+from boutdata.restart import create
+from boutdata.restart import resizeZ
+from boutdata.restart import redistribute
+from inspect import getsource as GS
 import numpy as np
 import os
 import subprocess
 import sys
 import datetime
 import time
-from boutdata.restart import addvar
-from boutdata.restart import addnoise
-from boutdata.restart import create
-from boutdata.restart import addnoise
-from boutdata.restart import resizeZ
-from boutdata.restart import redistribute
-from inspect import getsource as GS
 
 
 def extract_rundir(run_dir):
@@ -63,6 +62,20 @@ def replace_line(file_name, line_num, text, new_line=False):
     out.close()
 
 
+def check_file(file_name, text="", equals=None):
+    lines = open(file_name, "r").readlines()
+    for i, j in enumerate(lines):
+        if j[0] == "#":
+            continue
+        line_split = j.split("=")
+        if text in line_split[0]:
+            if equals is None:
+                return True
+        elif equals is not None and equals in line_split[-1]:
+            return True
+    return False
+
+
 def get_last_line(file_name):
     lines = open(file_name, "r").readlines()
     return lines[-1].strip()
@@ -94,9 +107,7 @@ def read_line(filename, lookup):
 def list_grids(densities, shotnum, machine="tcv", resolution="64x64"):
     d_names = []
     for d in densities:
-        d_names.append(
-            "{}_{}_{}_profiles_{}e19.nc".format(machine, shotnum, resolution, d)
-        )
+        d_names.append(f"{machine}_{shotnum}_{resolution}_profiles_{d}e19.nc")
     return d_names
 
 
@@ -214,6 +225,24 @@ class BaseSim:
                         self.grid_file, i
                     )
                 os.system(cp_grid_cmd)
+
+        if check_file(
+            "{}/{}".format(self.path_out, self.inp_file),
+            text="impurity_adas",
+            equals="true",
+        ):
+            for i in self.scan_IDs:
+                os.system(
+                    "ln -s {}/impurity_user_input.json ./{}/impurity_user_input.json".format(
+                        self.hermes_ver[:-8], i
+                    )
+                )
+                os.system(
+                    "ln -s {}/json_database ./{}/json_database".format(
+                        self.hermes_ver[:-8], i
+                    )
+                )
+
         self.inp_file = "BOUT.inp"
         if self.grid_file is not None:
             if type(self.grid_file) is list:
@@ -224,7 +253,9 @@ class BaseSim:
 
     def mod_inp(self, param, value=None, line_num=None):
         if line_num is None:
-            line_num = find_line("{}/0/{}".format(self.run_dir, self.inp_file), param)
+            line_num = find_line(
+                "{}/{}/{}/{}".format(self.run_dir, self.scan_IDs[0], self.add_type, self.inp_file), param
+            )
         if value is None:
             for i in self.scan_IDs:
                 os.chdir("{}/{}/{}".format(self.run_dir, i, self.add_type))
@@ -409,6 +440,13 @@ class BaseSim:
                 find_line(self.run_script, "#SBATCH -e"),
                 "#SBATCH -e {}/zzz.err".format(job_dir),
             )
+
+            replace_line(
+                self.run_script,
+                find_line(self.run_script, "cd "),
+                "cd {}".format(job_dir),
+            )
+
         for i in self.scan_IDs:
             os.chdir("{}/{}/{}".format(self.run_dir, i, self.add_type))
             if self.add_type == "":
@@ -659,13 +697,31 @@ class AddSim(BaseSim):
         self.copy_restart_files(old_type, new_type)
         self.title = new_type
 
-    def copy_new_inp(self, inpName):
+    def copy_new_inp(self, inp_name):
         for i in self.scan_IDs:
             os.system(
                 "cp {}/{} {}/{}/{}/BOUT.inp".format(
-                    self.path_out, inpName, self.run_dir, i, self.add_type
+                    self.path_out, inp_name, self.run_dir, i, self.add_type
                 )
             )
+            if type(self.grid_file) is list:
+                self.mod_inp(param="grid")
+        if check_file(
+            "{}/{}".format(self.path_out, inp_name),
+            text="impurity_adas",
+            equals="true",
+        ):
+            for i in self.scan_IDs:
+                os.system(
+                    "ln -s {}/impurity_user_input.json {}/{}/{}/impurity_user_input.json".format(
+                        self.hermes_ver[:-8], self.run_dir, i, self.add_type
+                    )
+                )
+                os.system(
+                    "ln -s {}/json_database {}/{}/{}/json_database".format(
+                        self.hermes_ver[:-8], self.run_dir, i, self.add_type
+                    )
+                )
 
     def copy_inp_files(self, old_type="", new_type="restart"):
         if len(old_type) == 0:
@@ -758,66 +814,39 @@ class AddTurbulence(AddSim):
 
 
 def archerMain():
-    cluster = "archer"
-    inp_file = "BOUT.inp"
-    path_out = "/home/e281/e281/hm1234/hm1234/fuck"
-    path_in = "retry-63127"
+    inp_file = "BOUT2.inp"
+    path_out = "/home/e281/e281/hm1234/hm1234/TCV2020"
+    path_in = "test2"
     date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
-    title = "hleg"
+    title = "grid"
     # scan_params = [0.02, 0.04, 0.06, 0.08]
-    grids = list_grids([0.5, 1, 2, 4, 10, 20], 63127, "newtcv2", "64x64")
-    n_procs = 64
-    tme = "00:22:22"
+    grids = list_grids([0.2, 0.4, 0.6, 0.8, 1], 63161, "newtcv2", "64x64")
+    n_procs = 256
+    tme = "22:22:22"
     hermes_ver = "/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    sim = MultiGridSim(
-        cluster,
-        path_out,
-        path_in,
-        date_dir,
+    archerRestart = StartFromOldMGSim(
+        "/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/0/6-incSource",
+        "test2",
         grids,
-        hermes_ver,
-        "job.pbs",
-        "BOUT.inp",
-        title,
+        date_dir,
+        "",
+        "newstart2",
+        "log2.txt",
     )
-    sim.setup()
-    sim.mod_inp("NOUT", 222)
-    sim.mod_inp("TIMESTEP", 444)
-    sim.mod_job(n_procs, tme)
-    sim.sub_job()
+    archerRestart.setup(hermes_ver="/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2")
+    archerRestart.mod_job(n_procs, tme)
+    archerRestart.mod_inp("NOUT", 111)
+    archerRestart.mod_inp("TIMESTEP", 22)
+    archerRestart.sub_job()
 
-    # archerRestart = StartFromOldMGSim('/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/0/6-incSource',
-    #                                   'test2',
-    #                                   grids,
-    #                                   date_dir,
-    #                                   '',
-    #                                   'newstart2',
-    #                                   'log2.txt')
-    # archerRestart.setup(hermes_ver='/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2')
-    # archerRestart.mod_job(n_procs, tme)
-    # archerRestart.mod_inp('NOUT', 111)
-    # archerRestart.mod_inp('TIMESTEP', 22)
-    # archerRestart.sub_job()
-
-    # restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart2-09-04-20_003311')
+    # restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
     # # print(restart.scan_params)
     # restart.setup(new_type = '2-noCurrents')
     # restart.mod_inp('anomalous_D', 1)
     # restart.mod_inp('bndry_yup', 'free_o3', 271)
     # restart.mod_inp('bndry_ydown', 'free_o3', 272)
-    # restart.mod_inp('j_par', 'false')
-    # restart.mod_inp('j_diamag', 'false')
-    # restart.mod_inp('TIMESTEP', 222)
-    # restart.mod_inp('NOUT', 222)
-    # tme = '23:59:59'
-    # restart.mod_job(n_procs, tme)
-    # restart.sub_job()
-
-    # restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
-    # # print(restart.scan_params)
-    # restart.setup(old_type='3-free_o3', new_type='4-noCurrents')
     # restart.mod_inp('j_par', 'false')
     # restart.mod_inp('j_diamag', 'false')
     # restart.mod_inp('TIMESTEP', 222)
@@ -923,7 +952,7 @@ def vikingMain():
     # sim.sub_job()
 
     run_dir = "/mnt/lustre/users/hm1234/2D/rollover/grid-04-04-20_135155"
-    tme = "22:22:22"
+    tme = "04:44:44"
 
     # addN = AddNeutrals(run_dir = run_dir)
     # addN.setup(new_type = '2-addN')
@@ -942,18 +971,101 @@ def vikingMain():
     addC.mod_job(n_procs, tme)
     addC.sub_job()
 
+    # addC = AddCurrents(run_dir)
+    # addC.setup("2-addN", "3-addC")
+    # addC.mod_inp("j_par", "true")
+    # addC.mod_inp("j_diamag", "true")
+    # addC.mod_file("test.job", "#SBATCH --mem", "10gb")
+    # addC.mod_job(n_procs, tme)
+    # addC.sub_job()
+
+    # res = RestartSim(run_dir)
+    # res.setup(old_type="3-addC", new_type="4.1-radBuff")
+    # res.mod_inp("radial_buffers", "true")
+    # res.mod_inp("ion_viscosity", "true")
+    # res.mod_inp("anomalous_D", 1)
+    # res.mod_job(n_procs, tme)
+    # res.sub_job()
+
 
 def marconiMain():
     cluster = "marconi"
-    path_out = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D"
-    path_in = "initial"
+    inp_file = "BOUT2.inp"
+    path_out = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/cereal"
+    path_in = "even-lower-source"
     date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
-    title = "gauss"
+    title = "newgrid"
     # scan_params = [0.02, 0.04, 0.06, 0.08]
-    # grids = list_grids(list(range(3, 10)), 63127, 'newtcv2', '64x64')
-    n_procs = 512
-    tme = "22:22:22"
-    hermes_ver = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/hermes-2/hermes-2"
+    densities = [0.5, 1, 2, 4, 10, 20]
+    densities = [3, 5, 8, 9, 10, 11, 12, 15, 20]
+    grids = list_grids(densities, 63161, "tcv6", "64x64")  # "tcvhyp2_3" "newtcv2"
+    n_procs = 64
+    tme = "01:11:11"
+    hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-2/hermes-2"
+    # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
+
+    # sim = SlabSim(
+    #     cluster="marconi",
+    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
+    #     path_in="sep",
+    #     date_dir=date_dir,
+    #     grid_file=None,
+    #     scan_params=None,
+    #     hermes_ver=hermes_ver,
+    #     run_script="test.job",
+    #     inp_file="BOUT_w2.inp",
+    #     title="highRes",
+    # )
+
+    # sim.setup()
+    # sim.mod_inp("sheath_model", 4)
+    # sim.mod_inp("NOUT", 111)
+    # sim.mod_inp("TIMESTEP", 22)
+    # sim.mod_job(576, "22:22:22")
+    # sim.sub_job()
+
+    """
+    for the resarting of the slab sim you should maybe look at playing with the cvode options ... cvode_max_order and mxstep
+    """
+    densities = [3, 5, 8, 9, 10, 11, 12, 15, 20]
+    densities = [12,15,20]
+    densities = [8, 12, 14, 16, 18, 20, 22, 28]
+    grids = list_grids(densities, 63127, "tcv7", "64x64")  # "tcvhyp2_3" "newtcv2"
+
+    # sim = MultiGridSim(
+    #     cluster="marconi",
+    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D",
+    #     path_in="sep",
+    #     date_dir=date_dir,
+    #     scan_params=grids,
+    #     hermes_ver=hermes_ver,
+    #     run_script="test.job",
+    #     inp_file="BOUT_s4_2.inp",
+    #     title="newgrid-63127",
+    # )
+
+    # sim.setup()
+    # sim.mod_inp("sheath_model", 4)
+    # sim.mod_inp("NOUT", 222)
+    # sim.mod_inp("TIMESTEP", 333)
+    # sim.mod_inp("kappa_limit_alpha", -1)
+    # sim.mod_inp("eta_limit_alpha", -1)  # 0.5 default
+    # # sim.mod_inp("type", "none", 221)
+    # # sim.mod_inp("loadmetric", "false", 102)
+    # # sim.mod_inp("use_precon", "false")
+    # sim.mod_job(64, "00:44:44")
+    # sim.sub_job()
+
+    # cluster = 'marconi'
+    # path_out = '/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D'
+    # path_in = 'initial'
+    # date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
+    # title = 'gauss'
+    # # scan_params = [0.02, 0.04, 0.06, 0.08]
+    # # grids = list_grids(list(range(3, 10)), 63127, 'newtcv2', '64x64')
+    # n_procs = 512
+    # tme = '22:22:22'
+    # hermes_ver = '/marconi_work/FUA34_SOLBOUT4/hmuhamme/hermes-2/hermes-2'
 
     # sim = SlabSim(cluster = cluster,
     #               path_out = path_out,
@@ -965,6 +1077,8 @@ def marconiMain():
     #               run_script = 'test.job',
     #               inp_file = 'BOUT-slab.inp',
     #               title = title)
+
+    
     # sim.setup()
     # sim.mod_inp('NOUT', 222)
     # sim.mod_inp('TIMESTEP', 111)
@@ -982,6 +1096,127 @@ def marconiMain():
     tme = "22:22:22"
     hyper.mod_job(n_procs, tme)
     hyper.sub_job()
+
+    # run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/initial/gauss-04-04-20_201318"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/fuck/retry-63127/63127-08-06-20_121347"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/fuck/retry-63161/63161-08-06-20_120932"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/fuck/hypnotoad2/63127_hyp2-09-06-20_200333"
+    # tme = "22:22:22"
+    
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/cereal/diagnose-low-density/63127-17-06-20_174923"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/3D/june/slab-19-06-20_092954"
+    run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/june/slab-22-06-20_004728"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/3D/june/mixmode-27-06-20_182959"
+
+    ##### 2d rundirs
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/july/63127-15-07-20_193445"
+    # run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D/july/63161-15-07-20_192619"
+    # run_dir = (
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/s2-63161-15-07-20_194136"
+    # )
+    # run_dir = (
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/s2-63127-15-07-20_194136"
+    # )
+
+    run_dir = (
+        "/marconi/home/userexternal/hmuhamme/work/2D/july2/s2-63127-16-07-20_232221"
+    )
+    # run_dir = (
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/s2-63161-16-07-20_232147"
+    # )
+
+    # run_dir = (
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63161-30-07-20_184953"
+    # )
+    run_dir = (
+        "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63127-30-07-20_180810"
+    )
+
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63127-11-09-20_190916"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63161-12-09-20_113531"
+
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63161-21-09-20_164648"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63127-21-09-20_164717"
+
+
+    #####
+    # old_type = "3-currents"
+    # new_type = "3.1-moretime"
+    # res = RestartSim(run_dir=run_dir)
+    # res.setup(old_type=old_type, new_type=new_type)
+    # res.copy_restart_files(old_type=old_type, new_type=new_type, t=-2)
+    # res.mod_inp("TIMESTEP", 128)
+    # res.mod_inp("NOUT", 128)
+    # # res.copy_new_inp("BOUT-curr.inp")
+    # # res.mod_inp("carbon_fraction", 0.6)
+    # # res.mod_inp("j_par", "true")
+    # # res.mod_inp("j_diamag", "true")
+    # # res.mod_job(64, "22:22:22")
+    # # res.mod_inp("ramp_j_diamag", 1)
+    # # res.mod_inp("anomalous_nu", 0.33)
+    # # res.mod_inp("radial_buffers", "true")
+    # res.mod_job(64, "23:59:59")
+    # res.sub_job()
+
+    # addN = AddNeutrals(run_dir=run_dir)
+    # addN.setup(new_type="2-addN")
+    # addN.mod_inp("TIMESTEP", 111)
+    # addN.mod_inp("NOUT", 123)
+    # addN.mod_inp("type", "mixed", 219)
+    # addN.mod_inp("ion_viscosity", "false")
+    # addN.copy_restart_files(old_type="", new_type="2-addN", t=-2)
+    # addN.add_var(Nn=0.04, Pn=0.02)
+    # addN.mod_job(64, "22:22:22")
+    # addN.sub_job()
+
+    old_type = "2-addN"
+    new_type = "3-addC"
+    addC = AddCurrents(run_dir=run_dir, scan_IDs=[0,1,2,3]) # [0,1,2,3]
+    addC.setup(old_type=old_type, new_type=new_type)
+    addC.copy_restart_files(old_type=old_type, new_type=new_type)
+    addC.mod_inp("j_par", "true")
+    addC.mod_inp("j_diamag", "true")
+    addC.mod_job(64, "23:59:59")
+    addC.sub_job()
+
+    # hyper = RestartSim(run_dir=run_dir)
+    # hyper.setup(new_type="3-hyperViscos")
+    # hyper.copy_restart_files("3-hyperViscos", t=-3)
+    # # hyper.mod_inp("ATOL", "1.0e-6", 83)
+    # # hyper.mod_inp("RTOL", "1.0e-4", 84)
+    # hyper.copy_new_inp("BOUT_hyp.inp")
+    # tme = "22:22:22"
+    # hyper.mod_job(576, tme)
+    # hyper.sub_job()
+
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/3D/july/manmix-02-07-20_155914"
+    # # run_dir = ""
+    # old_type = ""
+    # new_type = "1.6-anom_nu"
+    # slab = AddCurrents(run_dir=run_dir)
+    # slab.setup(old_type=old_type, new_type=new_type)
+    # slab.copy_new_inp("BOUT_temp1.inp")
+    # slab.copy_restart_files(old_type=old_type, new_type=new_type, t=-2)
+    # # slab.mod_inp("NOUT", 222)
+    # # slab.mod_inp("TIMESTEP", 222)
+    # # slab.mod_inp("sheath_model", 4)
+    # # slab.copy_restart_files(new_type=new_type, t=-10)
+    # # slab.resizeZ
+    # # slab.copy_new_inp()
+    # # slab.mod_inp("kappa_limit_alpha", -1)
+    # # slab.mod_inp("eta_limit_alpha", -1)
+    # slab.mod_job(576, "02:22:22")
+    # slab.sub_job()
+
+    # run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/initial/gauss-04-04-20_201318"
+
+    # hyper = RestartSim(run_dir=run_dir)
+    # hyper.setup(new_type="2-hyper")
+    # hyper.copy_restart_files(new_type="2-hyper", t=-10)
+    # hyper.copy_new_inp("testBOUT.inp")
+    # tme = "22:22:22"
+    # hyper.mod_job(n_procs, tme)
+    # hyper.sub_job()
 
 
 if __name__ == "__main__":
