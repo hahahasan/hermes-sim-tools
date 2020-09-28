@@ -119,7 +119,11 @@ class squashData:
         os.chdir(dataDir)
         self.gridFile = read_line(logFile, "grid_file")
         self.scanParams = read_line(logFile, "scan_params")
-        self.scanNum = len(self.scanParams)
+        if self.scanParams is not None:
+            self.scanNum = len(self.scanParams)
+        else:
+            self.scanNum = 1
+            self.scanParams = ["foo"]
         self.subDirs = []
         for i in range(self.scanNum):
             # print('{}/{}'.format(dataDir, i))
@@ -1415,16 +1419,29 @@ if __name__ == "__main__":
     # )
     # j2.saveData()
 
-    j2 = squashData(
-        "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63127-30-07-20_180810"
-    )
-    j2.saveData()
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63127-30-07-20_180810"
+    # )
+    # j2.saveData()
 
-    j2 = squashData(
-        "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63161-30-07-20_184953"
-    )
-    j2.saveData()
+    # j2 = squashData(
+    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63161-30-07-20_184953"
+    # )
+    # j2.saveData()
 
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63127-11-09-20_190916")
+    # a.saveData()
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63161-12-09-20_113531")
+    # a.saveData()
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/3D/sep/sheath4-12-09-20_121337")
+    # a.saveData()
+
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63127-21-09-20_164717")
+    # a.saveData()
+    # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63161-21-09-20_164648")
+    # a.saveData()
+    a = squashData("/marconi/home/userexternal/hmuhamme/work/3D/sep/sheath4-12-09-20_121337")
+    a.saveData()
     # # d = newDScan
     # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
