@@ -184,9 +184,9 @@ class BaseSim:
         hermes_URL = subprocess.run(
             "git remote get-url origin".split(), capture_output=True, text=True
         ).stdout.strip()
-        BOUT_git_ID = get_last_line("BOUT_commit")
+        # BOUT_git_ID = get_last_line("BOUT_commit")
         os.chdir(curr_dir)
-        return hermes_URL, hermes_git_ID, BOUT_git_ID
+        return hermes_URL, hermes_git_ID #, BOUT_git_ID
 
     def setup(self):
         self.log = LogSim(self.run_dir, "log.txt")
@@ -197,7 +197,7 @@ class BaseSim:
         self.log("run_script: {}".format(self.run_script))
         self.log("grid_file: {}".format(str(self.grid_file)))
         self.log("scan_params: {}".format(str(self.scan_params)))
-        self.log("BOUT_commit: {}".format(self.get_hermes_git()[2]))
+        # self.log("BOUT_commit: {}".format(self.get_hermes_git()[2]))
         self.log(
             "hermes_info: {} - {}".format(
                 self.get_hermes_git()[0], self.get_hermes_git()[1]
@@ -278,7 +278,8 @@ class BaseSim:
             self.log("modified: {}, to {}".format(param, value))
 
     def mod_file(
-        self, file_name, line_ID, new_ID, line_num=None, new_line=False, scan_IDs=[]
+            self, file_name, line_ID, new_ID, replace=False,
+            line_num=None, new_line=False, scan_IDs=[]
     ):
         if len(scan_IDs) == 0:
             scan_IDs = self.scan_IDs
@@ -286,22 +287,28 @@ class BaseSim:
             new_ID = "{}={}".format(line_ID, new_ID)
         if new_line is True:
             new_ID = ""
+        if replace is True:
+            new_ID = new_ID
         if line_num is None:
             line_num = find_line("{}/0/{}".format(self.run_dir, file_name), line_ID)
         for i in self.scan_IDs:
             os.chdir("{}/{}/{}".format(self.run_dir, i, self.add_type))
             replace_line(file_name, line_num, new_ID, new_line)
 
-    def mod_job(self, n_procs, tme, opt_nodes=True):
+    def mod_job(self, n_procs, tme, restart=False, opt_nodes=True):
+        if add_type != "":
+            restart2 = True
+        if restart is True:
+            restart2 = True
         self.log("n_procs: {}".format(n_procs))
         if self.cluster == "viking":
-            self.viking_mod_job(n_procs, tme, opt_nodes)
+            self.viking_mod_job(n_procs, tme, restart2, opt_nodes)
         elif self.cluster == "archer":
-            self.archer_mod_job(n_procs, tme, opt_nodes)
+            self.archer_mod_job(n_procs, tme, restart2, opt_nodes)
         elif self.cluster == "marconi":
-            self.marconi_mod_job(n_procs, tme, opt_nodes)
+            self.marconi_mod_job(n_procs, tme, restart2, opt_nodes)
 
-    def archer_mod_job(self, n_procs, tme, opt_nodes=True):
+    def archer_mod_job(self, n_procs, tme, restart=False, opt_nodes=True):
         if opt_nodes is True:
             nodes = int(np.ceil(n_procs / 24))
             for i in self.scan_IDs:
@@ -330,26 +337,23 @@ class BaseSim:
             )
         for i in self.scan_IDs:
             os.chdir("{}/{}/{}".format(self.run_dir, i, self.add_type))
-            if self.add_type == "":
-                run_command = "aprun -n {} {} -d {}/{} 2>&1 {}/{}/zzz".format(
-                    n_procs, self.hermes_ver, self.run_dir, i, self.run_dir, i
-                )
-            else:
-                run_command = "aprun -n {} {} -d {}/{}/{} restart 2>&1 > {}/{}/{}/zzz".format(
-                    n_procs,
-                    self.hermes_ver,
-                    self.run_dir,
-                    i,
-                    self.add_type,
-                    self.run_dir,
-                    i,
-                    self.add_type,
-                )
+            run_command = "aprun -n {} {} -d {}/{}/{} restart 2>&1 > {}/{}/{}/zzz".format(
+                n_procs,
+                self.hermes_ver,
+                self.run_dir,
+                i,
+                self.add_type,
+                self.run_dir,
+                i,
+                self.add_type,
+            )
+            if restart is False:
+                run_command = run_command.replace(" restart ", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "aprun"), run_command
             )
 
-    def viking_mod_job(self, n_procs, tme, opt_nodes=True):
+    def viking_mod_job(self, n_procs, tme, restart=False, opt_nodes=True):
         if opt_nodes is True:
             nodes = int(np.ceil(n_procs / 40))
             for i in self.scan_IDs:
@@ -378,19 +382,16 @@ class BaseSim:
             )
         for i in self.scan_IDs:
             os.chdir("{}/{}/{}".format(self.run_dir, i, self.add_type))
-            if self.add_type == "":
-                run_command = "mpiexec -n {} {} -d {}/{}".format(
-                    n_procs, self.hermes_ver, self.run_dir, i
-                )
-            else:
-                run_command = "mpiexec -n {} {} -d {}/{}/{} restart".format(
-                    n_procs, self.hermes_ver, self.run_dir, i, self.add_type
-                )
+            run_command = "mpiexec -n {} {} -d {}/{}/{} restart".format(
+                n_procs, self.hermes_ver, self.run_dir, i, self.add_type
+            )
+            if restart is False:
+                run_command = run_command.replace(" restart ", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "mpiexec"), run_command
             )
 
-    def marconi_mod_job(self, n_procs, tme, opt_nodes=True):
+    def marconi_mod_job(self, n_procs, tme, restart=False, opt_nodes=True):
         if opt_nodes is True:
             nodes = int(np.ceil(n_procs / 48))
             for i in self.scan_IDs:
@@ -449,14 +450,11 @@ class BaseSim:
 
         for i in self.scan_IDs:
             os.chdir("{}/{}/{}".format(self.run_dir, i, self.add_type))
-            if self.add_type == "":
-                run_command = "mpirun -n {} {} -d {}/{}".format(
-                    n_procs, self.hermes_ver, self.run_dir, i
-                )
-            else:
-                run_command = "mpirun -n {} {} -d {}/{}/{} restart".format(
-                    n_procs, self.hermes_ver, self.run_dir, i, self.add_type
-                )
+            run_command = "mpirun -n {} {} -d {}/{}/{} restart".format(
+                n_procs, self.hermes_ver, self.run_dir, i, self.add_type
+            )
+            if restart is False:
+                run_command = run_command.replace(" restart ", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "mpirun"), run_command
             )
@@ -583,7 +581,7 @@ class StartFromOldSim(BaseSim):
         self.log("scan_params: {}".format(str(self.scan_params)))
         if "hermes_ver" in kwargs:
             self.hermes_ver = kwargs["hermes_ver"]
-            self.log("BOUT_commit: {}".format(self.get_hermes_git()[2]))
+            # self.log("BOUT_commit: {}".format(self.get_hermes_git()[2]))
             self.log(
                 "hermes_info: {} - {}".format(
                     self.get_hermes_git()[0], self.get_hermes_git()[1]
@@ -609,6 +607,32 @@ class StartFromOldSim(BaseSim):
                     self.old_dir, self.run_dir, i, self.add_type
                 )
             )
+
+    def copy_new_inp(self, inp_name):
+        for i in self.scan_IDs:
+            os.system(
+                "cp {}/{} {}/{}/{}/BOUT.inp".format(
+                    self.path_out, inp_name, self.run_dir, i, self.add_type
+                )
+            )
+            if type(self.grid_file) is list:
+                self.mod_inp(param="grid")
+        if check_file(
+            "{}/{}".format(self.path_out, inp_name),
+            text="impurity_adas",
+            equals="true",
+        ):
+            for i in self.scan_IDs:
+                os.system(
+                    "ln -s {}/impurity_user_input.json {}/{}/{}/impurity_user_input.json".format(
+                        self.hermes_ver[:-8], self.run_dir, i, self.add_type
+                    )
+                )
+                os.system(
+                    "ln -s {}/json_database {}/{}/{}/json_database".format(
+                        self.hermes_ver[:-8], self.run_dir, i, self.add_type
+                    )
+                )
 
 
 class StartFromOldMGSim(StartFromOldSim):
@@ -814,32 +838,116 @@ class AddTurbulence(AddSim):
 
 
 def archerMain():
-    inp_file = "BOUT2.inp"
-    path_out = "/home/e281/e281/hm1234/hm1234/TCV2020"
-    path_in = "test2"
+    cluster = "archer"
+    inp_file = "BOUT.inp"
+    path_out = "/home/e281/e281/hm1234/hm1234/3D"
+    path_in = "test"
     date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
-    title = "grid"
+    title = "slab"
     # scan_params = [0.02, 0.04, 0.06, 0.08]
     grids = list_grids([0.2, 0.4, 0.6, 0.8, 1], 63161, "newtcv2", "64x64")
-    n_procs = 256
-    tme = "22:22:22"
-    hermes_ver = "/home/e281/e281/hm1234/hm1234/BOUTtest/hermes-2/hermes-2"
+    n_procs = 1152
+    tme = "23:59:59"
+    hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-test/hermes-2"
+    hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    archerRestart = StartFromOldMGSim(
-        "/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/0/6-incSource",
-        "test2",
-        grids,
-        date_dir,
-        "",
-        "newstart2",
-        "log2.txt",
-    )
-    archerRestart.setup(hermes_ver="/fs2/e281/e281/hm1234/BOUT2020/hermes-2/hermes-2")
-    archerRestart.mod_job(n_procs, tme)
-    archerRestart.mod_inp("NOUT", 111)
-    archerRestart.mod_inp("TIMESTEP", 22)
-    archerRestart.sub_job()
+    # sim = SlabSim(cluster = cluster,
+    #               path_out = path_out,
+    #               path_in = "dec",
+    #               date_dir = date_dir,
+    #               grid_file = None,
+    #               scan_params = None, #[1e-5, 1e-4, 1e-3],
+    #               hermes_ver = hermes_ver,
+    #               run_script = "job.pbs",
+    #               # inp_file = "BOUT_mixmode5.inp",
+    #               inp_file = "BOUT_phi_dissipation.inp",
+    #               title = "s4-phi_dissipation")
+
+    # sim.setup()
+    # # sim.mod_inp("phi_boundary_timescale")
+    # sim.mod_inp("NOUT", 88)
+    # sim.mod_inp("TIMESTEP", 444)
+    # sim.mod_inp("ion_viscosity", "false")
+    # sim.mod_inp("radial_buffer_D", 1)
+    # sim.mod_inp("hyperpar", 0.1, 152)
+    # sim.mod_inp("sheath_model", 4)
+    # sim.mod_job(n_procs=1152, tme="23:59:59")
+    # sim.sub_job()
+
+    # archerRestart = StartFromOldMGSim(
+    #     "/work/e281/e281/hm1234/TCV2020/test/grid-06-02-20_224436/0/6-incSource",
+    #     "test2",
+    #     grids,
+    #     date_dir,
+    #     "",
+    #     "newstart2",
+    #     "log2.txt",
+    # )
+
+    run_dir = "/work/e281/e281/hm1234/3D/test/DC_phi_bndry-30-09-20_200813"
+    run_dir = "/work/e281/e281/hm1234/3D/test/old_working-01-10-20_151503"
+    run_dir = "/work/e281/e281/hm1234/3D/test/nDC_old_working_s4-06-10-20_155832"
+    run_dir = "/work/e281/e281/hm1234/3D/test/nDC_old_working_s2-06-10-20_155853"
+    run_dir = "/work/e281/e281/hm1234/3D/oct/mixmode_s2-11-10-20_001325"
+
+    run_dir = "/work/e281/e281/hm1234/3D/oct/mixmode2_s2-13-10-20_003803"
+
+    run_dir = "/work/e281/e281/hm1234/3D/oct/fb2_s2-22-10-20_121004"
+    run_dir = "/work/e281/e281/hm1234/3D/oct/fb3_s2-27-10-20_001324"
+    run_dir = "/work/e281/e281/hm1234/3D/oct/working-28-10-20_113206"
+    run_dir = "/work/e281/e281/hm1234/3D/oct/w3-03-11-20_182031"
+    run_dir = "/work/e281/e281/hm1234/3D/nov/bb-07-11-20_080053"
+    run_dir = "/work/e281/e281/hm1234/3D/nov/bb-08-11-20_214350"
+    run_dir = "/work/e281/e281/hm1234/3D/nov/bb2-11-11-20_182752"
+    # run_dir = "/work/e281/e281/hm1234/3D/nov/bb2_new-18-11-20_121118"
+    # run_dir = "/work/e281/e281/hm1234/3D/dec/please-work-04-12-20_191815"
+
+    run_dirs = ["/work/e281/e281/hm1234/3D/dec/bb2_s2_pd-09-12-20_233450",
+                "/work/e281/e281/hm1234/3D/dec/bb2_s4_pd-09-12-20_233612"]
+    
+    old_type = ""
+    new_type = "1.1-moretime"
+
+    for run_dir in run_dirs:
+        archerRestart = RestartSim(run_dir)
+        archerRestart.setup(old_type=old_type, new_type=new_type)
+        archerRestart.hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD/hermes-2"
+        archerRestart.copy_restart_files(old_type=old_type, new_type=new_type)
+        # archerRestart.copy_new_inp("BOUT_phi_diss2.inp")
+        archerRestart.mod_inp("TIMESTEP", 222)
+        archerRestart.mod_inp("NOUT", 88)
+        # archerRestart.mod_inp("inner_boundary_flags", 0, 98)
+        # archerRestart.mod_inp("outer_boundary_flags", 0, 99)
+        # archerRestart.mod_inp("TIMESTEP", 5)
+        # sim.mod_inp("hyperpar", 0.08, 148)
+        # archerRestart.mod_inp("j_diamag_scale", 1)
+        # archerRestart.mod_inp("vort_dissipation", "false")
+        # archerRestart.mod_inp("phi_dissipation", "true", 153)
+        # archerRestart.mod_inp("radial_buffers", "true")
+        # archerRestart.mod_inp("hyperpar", 0.08, 148)
+        # archerRestart.mod_inp("hyper", 0.16, 149)
+        # archerRestart.mod_file("job.pbs", "#PBS -A", "e281")
+        # archerRestart.mod_inp("ion_viscosity", "true")
+        archerRestart.mod_job(n_procs, tme="23:59:59", restart=True)
+        archerRestart.sub_job()
+
+    # newsim = StartFromOldSim(run_dir = "/work/e281/e281/hm1234/3D/nov/bb2-11-11-20_182752/0/",
+    #                          new_path = "dec2",
+    #                          scan_params = [1e-5, 1e-4, 1e-3], #[1e-5, 1e-4, 1e-3],
+    #                          date_dir = date_dir,
+    #                          add_type = "",
+    #                          title = "bb2_s4_pd")
+
+    # newsim.setup(hermes_ver="/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD/hermes-2")
+    # newsim.copy_new_inp("BOUT_phi_diss2.inp")
+    # newsim.mod_inp("phi_boundary_timescale")
+    # newsim.mod_inp("sheath_model", 4)
+    # # newsim.mod_inp("ion_viscosity", "true")
+    # newsim.mod_file("job.pbs", "#PBS -A", "#PBS -A e281-bout", replace=True)
+    # newsim.mod_job(n_procs, tme="23:59:59", restart=True)
+    # newsim.sub_job()
+    
 
     # restart = RestartSim(run_dir = '/work/e281/e281/hm1234/TCV2020/test2/newstart-03-04-20_015424')
     # # print(restart.scan_params)
@@ -1221,6 +1329,8 @@ def marconiMain():
 
 if __name__ == "__main__":
     hostname = os.uname()[1]
+
+    hostname = "eslogin"
 
     if "viking" in hostname:
         vikingMain()
