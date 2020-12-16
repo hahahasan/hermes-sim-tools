@@ -2,28 +2,31 @@
 # Formula from R.J.Groebner Nucl. Fusion 41, 1789 (2001)
 
 from boututils.datafile import DataFile
+
 # from numpy import exp, arange, zeros, clip
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 import colorsys
 
-def list_grids(densities, shotnum, machine='tcv', resolution='64x64'):
+
+def list_grids(densities, shotnum, machine="tcv", resolution="64x64"):
     d_names = []
     for d in densities:
-        d_names.append(f'{machine}_{shotnum}_{resolution}_profiles_{d}e19.nc')
+        d_names.append(f"{machine}_{shotnum}_{resolution}_profiles_{d}e19.nc")
     return d_names
 
 
 def getDistinctColors(n):
-    huePartition = 1.0/(n+1)
-    colors = [colorsys.hsv_to_rgb(huePartition*value, 1.0, 1.0) for value in
-              range(0, n)]
+    huePartition = 1.0 / (n + 1)
+    colors = [
+        colorsys.hsv_to_rgb(huePartition * value, 1.0, 1.0) for value in range(0, n)
+    ]
     return colors
 
 
 def mtanh(alpha, z):
-    return ((1 + alpha*z)*np.exp(z) - np.exp(-z)) / (np.exp(z) + np.exp(-z))
+    return ((1 + alpha * z) * np.exp(z) - np.exp(-z)) / (np.exp(z) + np.exp(-z))
 
 
 def mtanh_profile(x, xsym, hwid, offset, pedestal, alpha):
@@ -35,7 +38,7 @@ def mtanh_profile(x, xsym, hwid, offset, pedestal, alpha):
     offset - zero offset
     pedestal - Height of the tanh
     """
-    b = 0.5*(offset + pedestal)
+    b = 0.5 * (offset + pedestal)
     a = pedestal - b
     z = (xsym - x) / hwid
     return a * mtanh(alpha, z) + b
@@ -51,7 +54,7 @@ def profile(filename, name, offset, pedestal, hwid=0.1, alpha=0.1):
         x = np.arange(nx)
         ix = d["ixseps1"]
 
-        prof = mtanh_profile(x, ix, hwid*nx, offset, pedestal, alpha)
+        prof = mtanh_profile(x, ix, hwid * nx, offset, pedestal, alpha)
         prof2d = np.zeros([nx, ny])
         for y in range(ny):
             prof2d[:, y] = prof
@@ -65,16 +68,18 @@ def profile(filename, name, offset, pedestal, hwid=0.1, alpha=0.1):
             ix = d["ixseps1"]
 
             for x in range(0, ix):
-                prof2d[x, 0:(j11+1)] = prof2d[np.clip(2*ix - x, 0, nx-1),
-                                              0:(j11+1)]
+                prof2d[x, 0 : (j11 + 1)] = prof2d[
+                    np.clip(2 * ix - x, 0, nx - 1), 0 : (j11 + 1)
+                ]
 
         # Lower outer PF region
         j22 = d["jyseps2_2"]
-        if j22 < ny-1:
+        if j22 < ny - 1:
             ix = d["ixseps1"]
             for x in range(0, ix):
-                prof2d[x, (j22+1):] = prof2d[np.clip(2*ix - x, 0, nx-1),
-                                             (j22+1):]
+                prof2d[x, (j22 + 1) :] = prof2d[
+                    np.clip(2 * ix - x, 0, nx - 1), (j22 + 1) :
+                ]
 
         # Upper PF region
         j21 = d["jyseps2_1"]
@@ -83,22 +88,23 @@ def profile(filename, name, offset, pedestal, hwid=0.1, alpha=0.1):
         if j21 != j12:
             ix = d["ixseps2"]
             for x in range(0, ix):
-                prof2d[x, (j21+1):(j12+1)] = prof2d[np.clip(2*ix - x, 0, nx-1),
-                                                    (j21+1):(j12+1)]
+                prof2d[x, (j21 + 1) : (j12 + 1)] = prof2d[
+                    np.clip(2 * ix - x, 0, nx - 1), (j21 + 1) : (j12 + 1)
+                ]
 
         d.write(name, prof2d)
 
 
 def createNewProfile(baseGrid, newProfile, offset, pedestal):
-    os.system('cp {} {}'.format(baseGrid, newProfile))
-    profile(newProfile, 'Te0', 5, 100, hwid=0.1, alpha=0.1)
-    profile(newProfile, 'Ti0', 5, 100, hwid=0.1, alpha=0.1)
-    profile(newProfile, 'Ne0', offset, pedestal, hwid=0.1, alpha=0.1)
+    os.system("cp {} {}".format(baseGrid, newProfile))
+    profile(newProfile, "Te0", 5, 100, hwid=0.1, alpha=0.1)
+    profile(newProfile, "Ti0", 5, 100, hwid=0.1, alpha=0.1)
+    profile(newProfile, "Ne0", offset, pedestal, hwid=0.1, alpha=0.1)
 
     with DataFile(newProfile, write=True) as d:
-        d['Ni0'] = d['Ne0']
+        d["Ni0"] = d["Ne0"]
 
-    print('generated {}'.format(newProfile))
+    print("generated {}".format(newProfile))
 
 
 # filename = "tcv_63127_64x64_profiles_1e19.nc"
@@ -111,6 +117,7 @@ def createNewProfile(baseGrid, newProfile, offset, pedestal):
 # with DataFile(filename, write=True) as d:
 #     d["Ni0"] = d["Ne0"]
 
+
 def checkProfiles(gridFiles=[], densities=[]):
     if len(densities) < 1:
         densities = np.zeros(len(gridFiles))
@@ -120,32 +127,32 @@ def checkProfiles(gridFiles=[], densities=[]):
     for i in gridFiles:
         grd = DataFile(i)
         grids.append(grd)
-        ne.append(grd['Ne0']*1e20)
-        te.append(grd['Te0'])
+        ne.append(grd["Ne0"] * 1e20)
+        te.append(grd["Te0"])
 
-    ix1 = grids[0]['ixseps1']
-    j11 = grids[0]['jyseps1_1']
-    j12 = grids[0]['jyseps1_2']
-    j22 = grids[0]['jyseps2_2']
-    j21 = grids[0]['jyseps2_1']
-    mid = int((j12+j22)/2)
+    ix1 = grids[0]["ixseps1"]
+    j11 = grids[0]["jyseps1_1"]
+    j12 = grids[0]["jyseps1_2"]
+    j22 = grids[0]["jyseps2_2"]
+    j21 = grids[0]["jyseps2_1"]
+    mid = int((j12 + j22) / 2)
 
     colors = getDistinctColors(len(gridFiles))
 
     plt.figure(1)
-    plt.axvline(x=ix1, color='black', linestyle='--')
+    plt.axvline(x=ix1, color="black", linestyle="--")
     for i in range(len(ne)):
         plt.plot(ne[i][:, mid], color=colors[i], label=gridFiles[i])
         print(densities[i])
-        plt.axhline(y=eval('{}e19'.format(densities[i])), color=colors[i],
-                    linestyle='--')
+        plt.axhline(
+            y=eval("{}e19".format(densities[i])), color=colors[i], linestyle="--"
+        )
 
     plt.figure(2)
-    plt.axvline(x=ix1, color='black', linestyle='--')
+    plt.axvline(x=ix1, color="black", linestyle="--")
     for i in range(len(te)):
         plt.plot(te[i][:, mid], color=colors[i], label=gridFiles[i])
-        plt.axhline(y=te[i][ix1, mid], color=colors[i],
-                    linestyle='--')
+        plt.axhline(y=te[i][ix1, mid], color=colors[i], linestyle="--")
 
     plt.legend()
     plt.show()
@@ -178,9 +185,10 @@ def checkProfiles(gridFiles=[], densities=[]):
 # plt.show()
 
 if __name__ == "__main__":
-    shot = 63161
-    dimension = '64x64'
-    baseGrid = 'newtcv2_{}_{}.nc'.format(shot, dimension)
+    shot = 63127
+    dimension = "64x64"
+    name = "newtcv2"
+    baseGrid = "{}_{}_{}.nc".format(name, shot, dimension)
 
     # baseGrid = 'test.nc'
 
@@ -195,17 +203,17 @@ if __name__ == "__main__":
     densities = [9.9, 10.5, 11, 12, 13]
     densities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     densities = [0.2, 0.4, 0.6, 0.8, 1]
+    densities = [0.5, 1, 2, 4, 10, 20]
 
     pedBase = 0.2
     offsets = []
     pedestals = []
     gridFiles = []
     for d in densities:
-        offset = 0.02*d
+        offset = 0.02 * d
         offsets.append(offset)
-        pedestals.append((0.2*d)-offset)
-        gridFiles.append('newtcv2_{}_{}_profiles_{}e19.nc'.format(
-            shot, dimension, d))
+        pedestals.append((0.2 * d) - offset)
+        gridFiles.append("{}_{}_{}_profiles_{}e19.nc".format(name, shot, dimension, d))
 
     # offsets = [0.02*1.2]
     # pedestals = [(0.2*1.2)-offsets[0]]
