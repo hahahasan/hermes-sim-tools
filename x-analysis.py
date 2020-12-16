@@ -20,7 +20,9 @@ import matplotlib.style as style
 from matplotlib.ticker import FormatStrFormatter
 
 from xbout import open_boutdataset
-from boutdata.squashoutput import squashoutput
+# from boutdata.squashoutput import squashoutput
+from boutdata2.squashoutput import squashoutput
+
 import animatplot as amp
 from xbout.plotting.animate import animate_poloidal, animate_pcolormesh, animate_line
 import xarray as xr
@@ -144,6 +146,7 @@ class squashData:
             subDirs = []
             for i in scanIds:
                 subDirs.append(subDir)
+        print(self.dataDir)
         for i in scanIds:
             print("################# squashing scanParam {}".format(self.scanParams[i]))
             for j in range(0, len(subDirs[i])):
@@ -155,9 +158,7 @@ class squashData:
                     continue
                 try:
                     # os.system('rm BOUT.dmp.nc')
-                    squashoutput(
-                        outputname="squashed.nc", compress=True, complevel=1, quiet=True
-                    )
+                    squashoutput(outputname="squashed.nc", compress=True, complevel=1, quiet=True, tind_auto=True)
                 except (OSError, ValueError):
                     print("could not squash {}-{}".format(i, title))
                     continue
@@ -1358,6 +1359,119 @@ if __name__ == "__main__":
         "PiSource",
         "NeSource",
     ]
+
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/highNe-63127-28-09-20_215622")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/highNe-63161-28-09-20_215609")
+    # x.saveData()
+
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/slab-28-09-20_211134")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/slab-29-09-20_182246")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/DC_phi_bndry-30-09-20_200813")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/old_working-01-10-20_151503")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/old_working2-05-10-20_222448")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/old_working_s2-06-10-20_075536")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/old_working_s4-06-10-20_075559")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/nDC_old_working_s2-06-10-20_155853")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/test/nDC_old_working_s4-06-10-20_155832")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/DC_hyperpar_s2-08-10-20_171338")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/DC_hyperpar_s4-08-10-20_171318")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/mixmode_s2_mpv-11-10-20_001412")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/mixmode_s4-11-10-20_001259")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/mixmode_s4_mpv-11-10-20_001428")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/rolloverRestart/63127-14-10-20_004035")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/rolloverRestart/63161-14-10-20_004141")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/mixmode_s2-11-10-20_001325")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/mixmode2_s2_nhp-14-10-20_145023")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/fixedbuffers_s4-21-10-20_015815")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/fixedbuffers_s2-21-10-20_005335")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/fb2_s2-22-10-20_121004")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/fb3_s2-27-10-20_001324")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/working-28-10-20_113206")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/w3-03-11-20_182031")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/3D/nov/bigbox-niv-05-11-20_101508")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/nov/bb-07-11-20_080053")
+    # x.saveData(subDir=["1.1-moretime"])
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/3D/nov/bigbox-iv-lessip-09-11-20_235824")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/nov/bb-08-11-20_214350")
+    # x.saveData(subDir=[""])
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/nov/bb2-11-11-20_182752")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/nov/bb2_new-18-11-20_121118")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/nov/test-18-11-20_022517")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/3D/nov/bb4-25-11-20_153937")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/3D/nov/bb4-s4-25-11-20_183707")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/dec/s4-iv-lhp-phi_relax-04-12-20_120504")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/dec/bb2_s2_pd-09-12-20_233450/")
+    # x.saveData()
+    x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/dec/bb2_s4_pd-09-12-20_233612/")
+    x.saveData()
+
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63127-11-10-20_014249")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63161-11-10-20_014220")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/oct/lr_s2_63127-09-10-20_200201")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/oct/lr_s2_63161-09-10-20_200215")
+    # x.saveData()
+
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.15_63127-14-10-20_200631")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.15_63161-14-10-20_200411")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.01_63127-14-10-20_195458")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.01_63161-14-10-20_195442")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.05_63127-14-10-20_195822")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.05_63161-14-10-20_200155")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.2_63127-14-10-20_201120")
+    # x.saveData()
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.2_63161-14-10-20_201345")
+    # x.saveData()
+    
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/oct/mixmode2_s2-13-10-20_003803")
+    # x.saveData()
+    
+    # s = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/highNe-63127-28-09-20_215622")
+    # s.saveData()
+    # s = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/highNe-63161-28-09-20_215609")
+    # s.saveData()
+
     # q_ids = ['Ne']
 
     # cScan = analyse('/users/hm1234/scratch/TCV/'
@@ -1440,8 +1554,6 @@ if __name__ == "__main__":
     # a.saveData()
     # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63161-21-09-20_164648")
     # a.saveData()
-    a = squashData("/marconi/home/userexternal/hmuhamme/work/3D/sep/sheath4-12-09-20_121337")
-    a.saveData()
     # # d = newDScan
     # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
