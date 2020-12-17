@@ -1148,27 +1148,27 @@ def marconiMain():
     # hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/hermes-onlypif/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    sim = SlabSim(
-        cluster="marconi",
-        path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
-        path_in="nov",
-        date_dir=date_dir,
-        grid_file=None,
-        scan_params=None,
-        hermes_ver=hermes_ver,
-        run_script="test.job",
-        inp_file="BOUT_mixmode6.inp",
-        title="bb4-s4",
-    )
+    # sim = SlabSim(
+    #     cluster="marconi",
+    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
+    #     path_in="nov",
+    #     date_dir=date_dir,
+    #     grid_file=None,
+    #     scan_params=None,
+    #     hermes_ver=hermes_ver,
+    #     run_script="test.job",
+    #     inp_file="BOUT_mixmode6.inp",
+    #     title="bb4-s4",
+    # )
 
-    sim.setup()
-    # sim.mod_inp("sheath_model", 4)
-    sim.mod_inp("NOUT", 88)
-    sim.mod_inp("TIMESTEP", 111)
-    sim.mod_inp("hyperpar", 0.1)
-    # sim.mod_inp("ion_viscosity", "true")
-    sim.mod_job(1152, "23:59:59") # 576, 1152
-    sim.sub_job()
+    # sim.setup()
+    # # sim.mod_inp("sheath_model", 4)
+    # sim.mod_inp("NOUT", 88)
+    # sim.mod_inp("TIMESTEP", 111)
+    # sim.mod_inp("hyperpar", 0.1)
+    # # sim.mod_inp("ion_viscosity", "true")
+    # sim.mod_job(1152, "23:59:59") # 576, 1152
+    # sim.sub_job()
 
     """
     for the resarting of the slab sim you should maybe look at playing with the cvode options ... cvode_max_order and mxstep

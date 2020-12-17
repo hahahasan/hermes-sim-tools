@@ -1435,7 +1435,9 @@ if __name__ == "__main__":
     # x.saveData()
     # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/dec/bb2_s2_pd-09-12-20_233450/")
     # x.saveData()
-    x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/dec/bb2_s4_pd-09-12-20_233612/")
+    # x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/dec/bb2_s4_pd-09-12-20_233612/")
+    # x.saveData()
+    x = squashData("/marconi/home/userexternal/hmuhamme/work/archer/2D/dec/63127-ca-16-12-20_174905")
     x.saveData()
 
     # x = squashData("/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63127-11-10-20_014249")
