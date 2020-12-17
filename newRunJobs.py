@@ -465,6 +465,8 @@ class BaseSim:
             queue = ""
         elif shortQ is True:
             queue = "-q short"
+        else:
+            queue = shortQ
 
         if self.cluster == "viking":
             cmd = "sbatch {} {}".format(queue, self.run_script)
@@ -788,6 +790,39 @@ class AddSim(BaseSim):
             os.chdir("{}/{}".format(self.run_dir, i))
             redistribute(npes=npes, path=old_type, output=new_type)
         self.n_procs = npes
+
+    def slab_interpXZ(self, newx, newz, t=-1, oldSimType="", newSimType="interp"):
+        scanData = scanCollect(quant="all", simType=oldSimType)
+        scanData_t = [scanData[i].isel(t=t) for i in self.scanIds]
+
+        oldx = self.read_line(self.logFile,
+                            "nx", first_instance=True)
+        oldz = self.read_line(self.logFile,
+                            "nz", first_instance=True)
+
+        if newx == oldx:
+            if newz == oldz:
+                print("old and new x/z values same same")
+                return
+        
+        newx_arr = np.linspace(0, oldx-1, num=newx)
+        newz_arr = np.linspace(0, oldz-1, num=newz)
+
+        for i in self.scanIds:
+            with ProgressBar():
+                highres = scanData_t[i].interp(x=newx_arr, z=newz_arr,
+                                    assume_sorted=True).compute()
+                highres = highres.expand_dims("t")
+
+                highres.attrs["metadata"]["dz"] = (newz/oldz) * highres.attrs["metadata"]["dz"]
+                highres.attrs["metadata"]["nz"] = newz
+                highres.attrs["metadata"]["MZ"] = newz
+                highres.attrs["metadata"]["nx"] = newx
+                highres.attrs["metadata"]["MXSUB"] = 10
+
+                restart_dir = f"{self.outDir}/i/{newSimType}"
+                os.mkdir(restart_dir)
+                highres.bout.to_restart(savepath=restart_dir)
 
 
 class AddNeutrals(AddSim):
@@ -1115,7 +1150,7 @@ def vikingMain():
     # addN.mod_job(n_procs, tme)
     # addN.sub_job()
 
-    addC = AddCurrents(run_dir)
+    addC = AddCurrents(run_dir=run_dir, )
     addC.setup("2-addN", "3-addC")
     addC.mod_inp("j_par", "true")
     addC.mod_inp("j_diamag", "true")
@@ -1154,27 +1189,30 @@ def marconiMain():
     n_procs = 64
     tme = "01:11:11"
     hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-2/hermes-2"
+    # hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/hermes-onlypif/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    # sim = SlabSim(
-    #     cluster="marconi",
-    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
-    #     path_in="sep",
-    #     date_dir=date_dir,
-    #     grid_file=None,
-    #     scan_params=None,
-    #     hermes_ver=hermes_ver,
-    #     run_script="test.job",
-    #     inp_file="BOUT_w2.inp",
-    #     title="highRes",
-    # )
+    sim = SlabSim(
+        cluster="marconi",
+        path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
+        path_in="nov",
+        date_dir=date_dir,
+        grid_file=None,
+        scan_params=None,
+        hermes_ver=hermes_ver,
+        run_script="test.job",
+        inp_file="BOUT_mixmode6.inp",
+        title="bb4-s4",
+    )
 
-    # sim.setup()
+    sim.setup()
     # sim.mod_inp("sheath_model", 4)
-    # sim.mod_inp("NOUT", 111)
-    # sim.mod_inp("TIMESTEP", 22)
-    # sim.mod_job(576, "22:22:22")
-    # sim.sub_job()
+    sim.mod_inp("NOUT", 88)
+    sim.mod_inp("TIMESTEP", 111)
+    sim.mod_inp("hyperpar", 0.1)
+    # sim.mod_inp("ion_viscosity", "true")
+    sim.mod_job(1152, "23:59:59") # 576, 1152
+    sim.sub_job()
 
     """
     for the resarting of the slab sim you should maybe look at playing with the cvode options ... cvode_max_order and mxstep
@@ -1182,31 +1220,37 @@ def marconiMain():
     densities = [3, 5, 8, 9, 10, 11, 12, 15, 20]
     densities = [12,15,20]
     densities = [8, 12, 14, 16, 18, 20, 22, 28]
-    grids = list_grids(densities, 63127, "tcv7", "64x64")  # "tcvhyp2_3" "newtcv2"
+    densities = [3, 6, 8, 10, 12, 15]
+    densities = [7, 8.5, 9, 9.5, 10, 11.5]
+    # densities = [8]
 
-    # sim = MultiGridSim(
-    #     cluster="marconi",
-    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D",
-    #     path_in="sep",
-    #     date_dir=date_dir,
-    #     scan_params=grids,
-    #     hermes_ver=hermes_ver,
-    #     run_script="test.job",
-    #     inp_file="BOUT_s4_2.inp",
-    #     title="newgrid-63127",
-    # )
+    # for i in [0.01, 0.05, 0.15, 0.2]:
+    #     grids = list_grids(densities, 63127, f"tcv8.2_tpsl{i}", "64x64")  # "tcvhyp2_3" "newtcv2"
 
-    # sim.setup()
-    # sim.mod_inp("sheath_model", 4)
-    # sim.mod_inp("NOUT", 222)
-    # sim.mod_inp("TIMESTEP", 333)
-    # sim.mod_inp("kappa_limit_alpha", -1)
-    # sim.mod_inp("eta_limit_alpha", -1)  # 0.5 default
-    # # sim.mod_inp("type", "none", 221)
-    # # sim.mod_inp("loadmetric", "false", 102)
-    # # sim.mod_inp("use_precon", "false")
-    # sim.mod_job(64, "00:44:44")
-    # sim.sub_job()
+    #     sim = MultiGridSim(
+    #         cluster="marconi",
+    #         path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D",
+    #         path_in="tpsl",
+    #         date_dir=date_dir,
+    #         scan_params=grids,
+    #         hermes_ver=hermes_ver,
+    #         run_script="test.job",
+    #         inp_file="BOUT_s4_2.inp",
+    #         title=f"63127-tpsl{i}",
+    #     )
+
+    #     sim.setup()
+    #     sim.mod_inp("sheath_model", 2)
+    #     sim.mod_inp("NOUT", 222)
+    #     sim.mod_inp("TIMESTEP", 666)
+    #     sim.mod_inp("kappa_limit_alpha", -1)
+    #     sim.mod_inp("eta_limit_alpha", -1)  # 0.5 default
+    #     sim.mod_inp("radial_buffers", "true")
+    #     # sim.mod_inp("type", "none", 221)
+    #     # sim.mod_inp("loadmetric", "false", 102)
+    #     # sim.mod_inp("use_precon", "false")
+    #     sim.mod_job(64, "00:34:56")
+    #     sim.sub_job()
 
     # cluster = 'marconi'
     # path_out = '/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D'
@@ -1239,97 +1283,131 @@ def marconiMain():
     # sim.mod_job(n_procs, tme)
     # sim.sub_job()
 
-    run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/initial/gauss-04-04-20_201318"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/s2_63127-08-10-20_180138"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/s2_63161-08-10-20_180210"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/s4_63161-08-10-20_180238"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/s4_63127-08-10-20_180256"
 
-    hyper = RestartSim(run_dir=run_dir)
-    hyper.setup(new_type="2-hyper")
-    hyper.copy_restart_files(new_type="2-hyper", t=-10)
-    hyper.mod_inp("hyper", 0.2, 148)
-    tme = "22:22:22"
-    hyper.mod_job(n_procs, tme)
-    hyper.sub_job()
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/hr_s2_63127-09-10-20_200139"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/hr_s2_63161-09-10-20_200122"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/lr_s2_63127-09-10-20_200201"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/lr_s2_63161-09-10-20_200215"
 
-    # run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/initial/gauss-04-04-20_201318"
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/fuck/retry-63127/63127-08-06-20_121347"
-    # run_dir = "/marconi/home/userexternal/hmuhamme/work/fuck/retry-63161/63161-08-06-20_120932"
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/fuck/hypnotoad2/63127_hyp2-09-06-20_200333"
-    # tme = "22:22:22"
-    
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/cereal/diagnose-low-density/63127-17-06-20_174923"
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/3D/june/slab-19-06-20_092954"
-    run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/june/slab-22-06-20_004728"
-    # run_dir = "/marconi/home/userexternal/hmuhamme/work/3D/june/mixmode-27-06-20_182959"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63127-11-10-20_014249"
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63161-11-10-20_014220"
 
-    ##### 2d rundirs
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/july/63127-15-07-20_193445"
-    # run_dir = "/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D/july/63161-15-07-20_192619"
-    # run_dir = (
-    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/s2-63161-15-07-20_194136"
-    # )
-    # run_dir = (
-    #     "/marconi/home/userexternal/hmuhamme/work/2D/july/s2-63127-15-07-20_194136"
-    # )
+    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.01_63127-14-10-20_195458"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.01_63161-14-10-20_195442"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.05_63127-14-10-20_195822"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.05_63161-14-10-20_200155"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.15_63127-14-10-20_200631"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.15_63161-14-10-20_200411"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.2_63127-14-10-20_201120"
+    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.2_63161-14-10-20_201345"
 
-    run_dir = (
-        "/marconi/home/userexternal/hmuhamme/work/2D/july2/s2-63127-16-07-20_232221"
-    )
-    # run_dir = (
-    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/s2-63161-16-07-20_232147"
-    # )
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.01_63127-14-10-20_195458",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.01_63161-14-10-20_195442",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.05_63127-14-10-20_195822",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.05_63161-14-10-20_200155",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.15_63127-14-10-20_200631",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.15_63161-14-10-20_200411",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.2_63127-14-10-20_201120",
+                "/marconi/home/userexternal/hmuhamme/work/2D/targetGridSpacing/tpsl0.2_63161-14-10-20_201345"]
 
-    # run_dir = (
-    #     "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63161-30-07-20_184953"
-    # )
-    run_dir = (
-        "/marconi/home/userexternal/hmuhamme/work/2D/july2/adas63127-30-07-20_180810"
-    )
-
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63127-11-09-20_190916"
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/s4_63161-12-09-20_113531"
-
-    run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63161-21-09-20_164648"
-    # run_dir = "/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63127-21-09-20_164717"
-
-
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/archer/oct/working-28-10-20_113206/"]
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/archer/oct/w3-03-11-20_182031/"]
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/3D/nov/bigbox-niv-05-11-20_101508/"]
+    run_dirs = ["/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/nov/bigbox-iv-lessip-09-11-20_235824"]
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/3D/nov/bb_iv_lip_mc-11-11-20_192205"]
     #####
-    # old_type = "3-currents"
-    # new_type = "3.1-moretime"
-    # res = RestartSim(run_dir=run_dir)
-    # res.setup(old_type=old_type, new_type=new_type)
-    # res.copy_restart_files(old_type=old_type, new_type=new_type, t=-2)
-    # res.mod_inp("TIMESTEP", 128)
-    # res.mod_inp("NOUT", 128)
-    # # res.copy_new_inp("BOUT-curr.inp")
-    # # res.mod_inp("carbon_fraction", 0.6)
-    # # res.mod_inp("j_par", "true")
-    # # res.mod_inp("j_diamag", "true")
-    # # res.mod_job(64, "22:22:22")
-    # # res.mod_inp("ramp_j_diamag", 1)
-    # # res.mod_inp("anomalous_nu", 0.33)
-    # # res.mod_inp("radial_buffers", "true")
-    # res.mod_job(64, "23:59:59")
-    # res.sub_job()
+    # for run_dir in run_dirs:
+    #     old_type = ""
+    #     new_type = "2.2-moretime"
+    #     res = RestartSim(run_dir=run_dir)
+    #     res.setup(old_type=old_type, new_type=new_type)
+    #     res.copy_restart_files(old_type=old_type, new_type=new_type)
+    #     res.copy_new_inp("BOUT2.inp")
+    #     res.mod_inp("NOUT", 111)
+    #     res.mod_inp("TIMESTEP", 555)
+    #     # res.mod_inp("radial_buffers", "true")
+    #     # res.copy_new_inp("BOUT-curr.inp")
+    #     # res.mod_inp("carbon_fraction", 0.6)
+    #     # res.mod_inp("j_par", "true")
+    #     # res.mod_inp("j_diamag", "true")
+    #     # res.mod_job(64, "22:22:22")
+    #     # res.mod_inp("ramp_j_diamag", 1)
+    #     # res.mod_inp("anomalous_nu", 0.33)
+    #     res.mod_job(64, "23:59:59")
+    #     res.sub_job()
 
-    # addN = AddNeutrals(run_dir=run_dir)
-    # addN.setup(new_type="2-addN")
-    # addN.mod_inp("TIMESTEP", 111)
-    # addN.mod_inp("NOUT", 123)
-    # addN.mod_inp("type", "mixed", 219)
-    # addN.mod_inp("ion_viscosity", "false")
-    # addN.copy_restart_files(old_type="", new_type="2-addN", t=-2)
-    # addN.add_var(Nn=0.04, Pn=0.02)
-    # addN.mod_job(64, "22:22:22")
-    # addN.sub_job()
+    # for run_dir in run_dirs:
+    #     old_type = ""
+    #     new_type = "1.1-moretime"
+    #     res = RestartSim(run_dir=run_dir)
+    #     res.setup(old_type=old_type, new_type=new_type)
+    #     # res.copy_restart_files(old_type=old_type, new_type=new_type, t=-4)
+    #     # res.copy_new_inp("BOUT_interp.inp")
+    #     res.mod_inp("NOUT", 100)
+    #     res.mod_inp("TIMESTEP", 200)
+    #     res.mod_inp("ramp_j_diamag", 1)
+    #     # res.mod_inp("hyperpar", 0.7)
+    #     # res.mod_inp("hyper", 0.16, 149)
+    #     res.mod_job(1152, "23:59:59")
+    #     res.sub_job()
 
-    old_type = "2-addN"
-    new_type = "3-addC"
-    addC = AddCurrents(run_dir=run_dir, scan_IDs=[0,1,2,3]) # [0,1,2,3]
-    addC.setup(old_type=old_type, new_type=new_type)
-    addC.copy_restart_files(old_type=old_type, new_type=new_type)
-    addC.mod_inp("j_par", "true")
-    addC.mod_inp("j_diamag", "true")
-    addC.mod_job(64, "23:59:59")
-    addC.sub_job()
+    # run_dir_origin = "/marconi/home/userexternal/hmuhamme/work/2D/tpsl"
+    # run_dirs = next(os.walk(run_dir_origin))[1]
+    # run_dirs = [f"{run_dir_origin}/{i}" for i in run_dirs]
+    # print(run_dirs)
+    # for run_dir in run_dirs:
+    #     old_type = ""
+    #     new_type = "2-addN"
+    #     addN = AddNeutrals(run_dir=run_dir, scan_IDs=[])
+    #     addN.setup(old_type=old_type, new_type=new_type)
+    #     addN.copy_restart_files(old_type=old_type, new_type=new_type,)
+    #     addN.mod_inp("TIMESTEP", 212)
+    #     addN.mod_inp("NOUT", 128)
+    #     addN.mod_inp("type", "mixed", 219)
+    #     addN.mod_inp("ion_viscosity", "false")
+    #     addN.add_var(Nn=0.04, Pn=0.02)
+    #     addN.mod_job(64, "22:22:22")
+    #     addN.sub_job()
+
+    # simNum = 63161
+    # tpsl = 0.2
+    # densities = [7, 8.5, 9, 9.5]
+    # grids = list_grids(densities, simNum, f"tcv8.2_tpsl{tpsl}", "64x64")
+    # if simNum == 63161:
+    #     restart_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63161-11-10-20_014220/3/2-addN"
+    # elif simNum == 63127:
+    #     restart_dir = "/marconi/home/userexternal/hmuhamme/work/2D/oct/lr2_s2_63127-11-10-20_014249/3/2-addN"
+    # Restart = StartFromOldMGSim(
+    #     restart_dir,
+    #     "targetGridSpacing",
+    #     grids,
+    #     date_dir,
+    #     "",
+    #     f"tpsl{tpsl}_{simNum}",
+    #     "log.txt",
+    # )
+    # Restart.setup()
+    # Restart.mod_job(n_procs=64, tme="23:59:59")
+    # Restart.mod_inp("NOUT", 111)
+    # Restart.mod_inp("TIMESTEP", 212)
+    # Restart.sub_job()
+
+    # old_type = "2-addN"
+    # new_type = "3-addC"
+    # addC = AddCurrents(run_dir=run_dir) # [0,1,2,3]
+    # addC.setup(old_type=old_type, new_type=new_type)
+    # addC.copy_restart_files(old_type=old_type, new_type=new_type, t=-1)
+    # addC.mod_inp("TIMESTEP", 75)
+    # addC.mod_inp("NOUT", 150)
+    # addC.mod_inp("ramp_j_diamag", "0.5 + (1/3.141592653589793) * atan(t - 10)")
+    # addC.mod_inp("j_par", "true")
+    # addC.mod_inp("j_diamag", "true")
+    # addC.mod_job(64, "23:59:59")
+    # addC.sub_job()
 
     # hyper = RestartSim(run_dir=run_dir)
     # hyper.setup(new_type="3-hyperViscos")
