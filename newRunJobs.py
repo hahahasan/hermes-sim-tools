@@ -283,10 +283,10 @@ class BaseSim:
     ):
         if len(scan_IDs) == 0:
             scan_IDs = self.scan_IDs
-        if "=" not in new_ID:
+        if "=" not in new_ID and replace is False:
             new_ID = "{}={}".format(line_ID, new_ID)
         if new_line is True:
-            new_ID = ""
+            new_ID = f"\n{new_ID}"
         if replace is True:
             new_ID = new_ID
         if line_num is None:
@@ -296,7 +296,8 @@ class BaseSim:
             replace_line(file_name, line_num, new_ID, new_line)
 
     def mod_job(self, n_procs, tme, restart=False, opt_nodes=True):
-        if add_type != "":
+        restart2 = False
+        if self.add_type != "":
             restart2 = True
         if restart is True:
             restart2 = True
@@ -880,12 +881,55 @@ def archerMain():
     date_dir = datetime.datetime.now().strftime("%d-%m-%y_%H%M%S")
     title = "slab"
     # scan_params = [0.02, 0.04, 0.06, 0.08]
-    grids = list_grids([0.2, 0.4, 0.6, 0.8, 1], 63161, "newtcv2", "64x64")
+    grids = list_grids([4, 6, 8, 10, 12], 63161, "tcv9", "64x64")
+    grids = list_grids([4, 8, 12], 63161, "tcv9", "64x64")
     n_procs = 1152
+    # nprocs = 64
     tme = "23:59:59"
     hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-test/hermes-2"
-    hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD/hermes-2"
+    hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD_14Dec20/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
+
+    sim = MultiGridSim(
+        cluster=cluster,
+        path_out="/home/e281/e281/hm1234/hm1234/2D",
+        path_in="dec",
+        date_dir=date_dir,
+        scan_params=grids,
+        hermes_ver=hermes_ver,
+        run_script="job.pbs",
+        inp_file="BOUT3.inp",
+        title="simp-63161",
+        )
+
+    sim.setup()
+    sim.mod_inp("sheath_model", 2)
+    sim.mod_inp("NOUT", 100)
+    sim.mod_inp("TIMESTEP", 500)
+    # sim.mod_inp("ion_viscosity", "false")
+    # sim.mod_inp("type", "none", 221)
+    # sim.mod_inp("loadmetric", "false", 102)
+    # sim.mod_inp("use_precon", "false")
+    sim.mod_job(64, "06:06:06")
+    sim.sub_job()
+
+    run_dirs = ["/home/e281/e281/hm1234/hm1234/2D/dec/63161-ca-16-12-20_174851"]
+                # "/home/e281/e281/hm1234/hm1234/2D/dec/63127-ca-16-12-20_174905"]
+
+    # run_dirs = ["/home/e281/e281/hm1234/hm1234/2D/dec/63127-iv-ca-16-12-20_174945",
+    #             "/home/e281/e281/hm1234/hm1234/2D/dec/63161-iv-ca-16-12-20_175001"]
+
+    # for run_dir in run_dirs:
+    #     addN = AddNeutrals(run_dir=run_dir, scan_IDs=[4])
+    #     addN.setup(new_type = '2.1-addN')
+    #     addN.mod_inp('TIMESTEP', 400)
+    #     addN.mod_inp('NOUT', 100)
+    #     addN.mod_inp('type', 'mixed', 220)
+    #     addN.add_var(Nn=0.04, Pn=0.02)
+    #     tme = '06:66:66'
+    #     n_procs = 64
+    #     addN.mod_job(n_procs, tme)
+    #     addN.sub_job()
 
     # sim = SlabSim(cluster = cluster,
     #               path_out = path_out,
@@ -938,34 +982,34 @@ def archerMain():
     # run_dir = "/work/e281/e281/hm1234/3D/nov/bb2_new-18-11-20_121118"
     # run_dir = "/work/e281/e281/hm1234/3D/dec/please-work-04-12-20_191815"
 
-    run_dirs = ["/work/e281/e281/hm1234/3D/dec/bb2_s2_pd-09-12-20_233450",
-                "/work/e281/e281/hm1234/3D/dec/bb2_s4_pd-09-12-20_233612"]
+    # run_dirs = ["/work/e281/e281/hm1234/3D/dec/bb2_s2_pd-09-12-20_233450"]
+    run_dirs = ["/work/e281/e281/hm1234/3D/dec/bb2_s4_pd-09-12-20_233612"]
     
-    old_type = ""
-    new_type = "1.1-moretime"
+    old_type = "1.1-moretime"
+    new_type = "1.5-pleasefix"
 
-    for run_dir in run_dirs:
-        archerRestart = RestartSim(run_dir)
-        archerRestart.setup(old_type=old_type, new_type=new_type)
-        archerRestart.hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD/hermes-2"
-        archerRestart.copy_restart_files(old_type=old_type, new_type=new_type)
-        # archerRestart.copy_new_inp("BOUT_phi_diss2.inp")
-        archerRestart.mod_inp("TIMESTEP", 222)
-        archerRestart.mod_inp("NOUT", 88)
-        # archerRestart.mod_inp("inner_boundary_flags", 0, 98)
-        # archerRestart.mod_inp("outer_boundary_flags", 0, 99)
-        # archerRestart.mod_inp("TIMESTEP", 5)
-        # sim.mod_inp("hyperpar", 0.08, 148)
-        # archerRestart.mod_inp("j_diamag_scale", 1)
-        # archerRestart.mod_inp("vort_dissipation", "false")
-        # archerRestart.mod_inp("phi_dissipation", "true", 153)
-        # archerRestart.mod_inp("radial_buffers", "true")
-        # archerRestart.mod_inp("hyperpar", 0.08, 148)
-        # archerRestart.mod_inp("hyper", 0.16, 149)
-        # archerRestart.mod_file("job.pbs", "#PBS -A", "e281")
-        # archerRestart.mod_inp("ion_viscosity", "true")
-        archerRestart.mod_job(n_procs, tme="23:59:59", restart=True)
-        archerRestart.sub_job()
+    # for run_dir in run_dirs:
+    #     archerRestart = RestartSim(run_dir, scan_IDs=[2])
+    #     archerRestart.setup(old_type=old_type, new_type=new_type)
+    #     archerRestart.hermes_ver = "/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD_14Dec20/hermes-2"
+    #     archerRestart.copy_restart_files(old_type=old_type, new_type=new_type)
+    #     archerRestart.copy_new_inp("BOUT_high_visc2.inp")
+    #     archerRestart.mod_inp("TIMESTEP", 22)
+    #     archerRestart.mod_inp("NOUT", 88)
+    #     # archerRestart.mod_inp("inner_boundary_flags", 0, 98)
+    #     # archerRestart.mod_inp("outer_boundary_flags", 0, 99)
+    #     # archerRestart.mod_inp("TIMESTEP", 5)
+    #     # sim.mod_inp("hyperpar", 0.08, 148)
+    #     # archerRestart.mod_inp("j_diamag_scale", 1)
+    #     # archerRestart.mod_inp("vort_dissipation", "false")
+    #     # archerRestart.mod_inp("phi_dissipation", "true", 153)
+    #     # archerRestart.mod_inp("radial_buffers", "true")
+    #     # archerRestart.mod_inp("hyperpar", 0.08, 148)
+    #     # archerRestart.mod_inp("hyper", 0.16, 149)
+    #     # archerRestart.mod_file("job.pbs", "#PBS -A", "e281")
+    #     # archerRestart.mod_inp("ion_viscosity", "true")
+    #     archerRestart.mod_job(n_procs, tme="23:59:59", restart=True)
+    #     archerRestart.sub_job()
 
     # newsim = StartFromOldSim(run_dir = "/work/e281/e281/hm1234/3D/nov/bb2-11-11-20_182752/0/",
     #                          new_path = "dec2",

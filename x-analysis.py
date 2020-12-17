@@ -1499,6 +1499,9 @@ if __name__ == "__main__":
 
     qlabels = ["Telim", "Ne"]
 
+    # x = squashData("/home/e281/e281/hm1234/hm1234/3D/test/slab-29-09-20_182246")
+    # x.saveData()
+    
     # x = squashData(
     #     "/marconi/home/userexternal/hmuhamme/work/3D/july/manmix-02-07-20_155914"
     # )
