@@ -1358,6 +1358,8 @@ if __name__ == "__main__":
         "PiSource",
         "NeSource",
     ]
+
+    
     # q_ids = ['Ne']
 
     # cScan = analyse('/users/hm1234/scratch/TCV/'
@@ -1383,6 +1385,9 @@ if __name__ == "__main__":
 
     qlabels = ["Telim", "Ne"]
 
+    # x = squashData("/home/e281/e281/hm1234/hm1234/3D/test/slab-29-09-20_182246")
+    # x.saveData()
+    
     # x = squashData(
     #     "/marconi/home/userexternal/hmuhamme/work/3D/july/manmix-02-07-20_155914"
     # )
@@ -1440,8 +1445,6 @@ if __name__ == "__main__":
     # a.saveData()
     # a = squashData("/marconi/home/userexternal/hmuhamme/work/2D/sep/newgrid-63161-21-09-20_164648")
     # a.saveData()
-    a = squashData("/marconi/home/userexternal/hmuhamme/work/3D/sep/sheath4-12-09-20_121337")
-    a.saveData()
     # # d = newDScan
     # # d2 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-07-09-19_180613')
     # # d3 = analyse('/users/hm1234/scratch/newTCV/gridscan/grid-12-09-19_165234')
