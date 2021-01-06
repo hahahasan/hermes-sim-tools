@@ -27,7 +27,7 @@ def extract_rundir(run_dir):
             if run_dir[-1] != "/":
                 run_dir = run_dir + "/"
             return run_dir, old_type
-        elif temp is int:
+        elif temp is int and len(j) < 3:
             stringID = i
             break
     new_string = "/"
@@ -299,8 +299,10 @@ class BaseSim:
         restart2 = False
         if self.add_type != "":
             restart2 = True
+            print("restart is true for some reason")
         if restart is True:
             restart2 = True
+            print("restart is true for some other different reason")
         self.log("n_procs: {}".format(n_procs))
         if self.cluster == "viking":
             self.viking_mod_job(n_procs, tme, restart2, opt_nodes)
@@ -349,7 +351,7 @@ class BaseSim:
                 self.add_type,
             )
             if restart is False:
-                run_command = run_command.replace(" restart ", " ")
+                run_command = run_command.replace(" restart", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "aprun"), run_command
             )
@@ -387,7 +389,7 @@ class BaseSim:
                 n_procs, self.hermes_ver, self.run_dir, i, self.add_type
             )
             if restart is False:
-                run_command = run_command.replace(" restart ", " ")
+                run_command = run_command.replace(" restart", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "mpiexec"), run_command
             )
@@ -455,7 +457,8 @@ class BaseSim:
                 n_procs, self.hermes_ver, self.run_dir, i, self.add_type
             )
             if restart is False:
-                run_command = run_command.replace(" restart ", " ")
+                run_command = run_command.replace(" restart", " ")
+                print("restart is false")
             replace_line(
                 self.run_script, find_line(self.run_script, "mpirun"), run_command
             )
@@ -690,6 +693,7 @@ class AddSim(BaseSim):
         self.run_dir = extract_rundir(run_dir)[0]
         self.old_type = extract_rundir(run_dir)[1]
         self.add_type = "restart"
+        # log_file = self.run_dir + f"/{log_file}"
         os.chdir(self.run_dir)
         self.scan_params = read_line(log_file, "scan_params")
         if self.scan_params is None:
@@ -1186,33 +1190,34 @@ def marconiMain():
     densities = [0.5, 1, 2, 4, 10, 20]
     densities = [3, 5, 8, 9, 10, 11, 12, 15, 20]
     grids = list_grids(densities, 63161, "tcv6", "64x64")  # "tcvhyp2_3" "newtcv2"
+    grids = list_grids([4, 6, 8, 10, 12], 63127, "tcv9", "64x64")
     n_procs = 64
     tme = "01:11:11"
     hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-2/hermes-2"
-    # hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/hermes-onlypif/hermes-2"
+    hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/hermes-2_BD_sheath/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
-    # sim = SlabSim(
-    #     cluster="marconi",
-    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
-    #     path_in="nov",
-    #     date_dir=date_dir,
-    #     grid_file=None,
-    #     scan_params=None,
-    #     hermes_ver=hermes_ver,
-    #     run_script="test.job",
-    #     inp_file="BOUT_mixmode6.inp",
-    #     title="bb4-s4",
-    # )
+    sim = SlabSim(
+        cluster="marconi",
+        path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
+        path_in="2021/jan",
+        date_dir=date_dir,
+        grid_file=None,
+        scan_params=None,
+        hermes_ver=hermes_ver,
+        run_script="test.job",
+        inp_file="BOUT_phi_diss3.inp",
+        title="fft-s4_v2-iv",
+    )
 
-    # sim.setup()
-    # # sim.mod_inp("sheath_model", 4)
-    # sim.mod_inp("NOUT", 88)
-    # sim.mod_inp("TIMESTEP", 111)
-    # sim.mod_inp("hyperpar", 0.1)
-    # # sim.mod_inp("ion_viscosity", "true")
-    # sim.mod_job(1152, "23:59:59") # 576, 1152
-    # sim.sub_job()
+    sim.setup()
+    sim.mod_inp("sheath_model", 4)
+    sim.mod_inp("NOUT", 88)
+    sim.mod_inp("TIMESTEP", 222)
+    sim.mod_inp("phi_boundary_timescale", 1e-4)
+    sim.mod_inp("ion_viscosity", "true")
+    sim.mod_job(1152, "23:59:59") # 576, 1152
+    sim.sub_job()
 
     """
     for the resarting of the slab sim you should maybe look at playing with the cvode options ... cvode_max_order and mxstep
@@ -1223,6 +1228,29 @@ def marconiMain():
     densities = [3, 6, 8, 10, 12, 15]
     densities = [7, 8.5, 9, 9.5, 10, 11.5]
     # densities = [8]
+
+    # sim = MultiGridSim(
+    #     cluster=cluster,
+    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D",
+    #     path_in="dec",
+    #     date_dir=date_dir,
+    #     scan_params=grids,
+    #     hermes_ver=hermes_ver,
+    #     run_script="test.job",
+    #     inp_file="BOUT4.inp",
+    #     title="new-s2-63127",
+    #     )
+
+    # sim.setup()
+    # sim.mod_inp("sheath_model", 2)
+    # sim.mod_inp("NOUT", 100)
+    # sim.mod_inp("TIMESTEP", 1000)
+    # # sim.mod_inp("ion_viscosity", "false")
+    # # sim.mod_inp("type", "none", 221)
+    # # sim.mod_inp("loadmetric", "false", 102)
+    # # sim.mod_inp("use_precon", "false")
+    # sim.mod_job(64, "06:06:06")
+    # sim.sub_job()
 
     # for i in [0.01, 0.05, 0.15, 0.2]:
     #     grids = list_grids(densities, 63127, f"tcv8.2_tpsl{i}", "64x64")  # "tcvhyp2_3" "newtcv2"
@@ -1340,6 +1368,7 @@ def marconiMain():
     #     res.mod_job(64, "23:59:59")
     #     res.sub_job()
 
+    # run_dirs = ["/marconi/home/userexternal/hmuhamme/work/3D/2021/jan/fft-s2-02-01-21_185657"]
     # for run_dir in run_dirs:
     #     old_type = ""
     #     new_type = "1.1-moretime"
@@ -1347,9 +1376,9 @@ def marconiMain():
     #     res.setup(old_type=old_type, new_type=new_type)
     #     # res.copy_restart_files(old_type=old_type, new_type=new_type, t=-4)
     #     # res.copy_new_inp("BOUT_interp.inp")
-    #     res.mod_inp("NOUT", 100)
-    #     res.mod_inp("TIMESTEP", 200)
-    #     res.mod_inp("ramp_j_diamag", 1)
+    #     res.mod_inp("NOUT", 88)
+    #     res.mod_inp("TIMESTEP", 444)
+    #     # res.mod_inp("j_diamag_scale", 1)
     #     # res.mod_inp("hyperpar", 0.7)
     #     # res.mod_inp("hyper", 0.16, 149)
     #     res.mod_job(1152, "23:59:59")
@@ -1359,18 +1388,19 @@ def marconiMain():
     # run_dirs = next(os.walk(run_dir_origin))[1]
     # run_dirs = [f"{run_dir_origin}/{i}" for i in run_dirs]
     # print(run_dirs)
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/2D/dec/new-s2-63127-29-12-20_163444"]
     # for run_dir in run_dirs:
     #     old_type = ""
     #     new_type = "2-addN"
-    #     addN = AddNeutrals(run_dir=run_dir, scan_IDs=[])
+    #     addN = AddNeutrals(run_dir=run_dir, scan_IDs=[1,2,3,4])
     #     addN.setup(old_type=old_type, new_type=new_type)
     #     addN.copy_restart_files(old_type=old_type, new_type=new_type,)
-    #     addN.mod_inp("TIMESTEP", 212)
-    #     addN.mod_inp("NOUT", 128)
+    #     addN.mod_inp("TIMESTEP", 300)
+    #     addN.mod_inp("NOUT", 100)
     #     addN.mod_inp("type", "mixed", 219)
-    #     addN.mod_inp("ion_viscosity", "false")
+    #     # addN.mod_inp("ion_viscosity", "false")
     #     addN.add_var(Nn=0.04, Pn=0.02)
-    #     addN.mod_job(64, "22:22:22")
+    #     addN.mod_job(64, "08:44:44")
     #     addN.sub_job()
 
     # simNum = 63161
@@ -1396,14 +1426,15 @@ def marconiMain():
     # Restart.mod_inp("TIMESTEP", 212)
     # Restart.sub_job()
 
+    # run_dir = run_dirs[0]
     # old_type = "2-addN"
     # new_type = "3-addC"
-    # addC = AddCurrents(run_dir=run_dir) # [0,1,2,3]
+    # addC = AddCurrents(run_dir=run_dir, scan_IDs=[1,2]) # [0,1,2,3]
     # addC.setup(old_type=old_type, new_type=new_type)
-    # addC.copy_restart_files(old_type=old_type, new_type=new_type, t=-1)
-    # addC.mod_inp("TIMESTEP", 75)
-    # addC.mod_inp("NOUT", 150)
-    # addC.mod_inp("ramp_j_diamag", "0.5 + (1/3.141592653589793) * atan(t - 10)")
+    # addC.copy_restart_files(old_type=old_type, new_type=new_type)
+    # addC.mod_inp("TIMESTEP", 100)
+    # addC.mod_inp("NOUT", 100)
+    # addC.mod_inp("j_diamag_scale", "0.5 + (1/3.141592653589793) * atan((t/50) - 5)")
     # addC.mod_inp("j_par", "true")
     # addC.mod_inp("j_diamag", "true")
     # addC.mod_job(64, "23:59:59")
@@ -1452,7 +1483,7 @@ def marconiMain():
 if __name__ == "__main__":
     hostname = os.uname()[1]
 
-    hostname = "eslogin"
+    # hostname = "eslogin"
 
     if "viking" in hostname:
         vikingMain()
