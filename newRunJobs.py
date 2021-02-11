@@ -164,7 +164,7 @@ class BaseSim:
         self.add_type = ""
         if os.path.isfile(hermes_ver) is False:
             print("Invalid hermes excutable")
-            exit()
+            sys.exit("Find a legit path and try again")
         self.hermes_ver = hermes_ver
         self.cluster = cluster
         self.run_script = run_script
@@ -645,6 +645,9 @@ class StartFromOldSim(BaseSim):
                         self.hermes_ver[:-8], self.run_dir, i, self.add_type
                     )
                 )
+
+    def mod_job(self, n_procs, tme, opt_nodes, restart=True):
+        return super().mod_job(n_procs, tme, opt_nodes=opt_nodes, restart=restart)
 
 class StartFromOldMGSim(StartFromOldSim):
     def __init__(
