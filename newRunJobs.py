@@ -27,7 +27,7 @@ def extract_rundir(run_dir):
             if run_dir[-1] != "/":
                 run_dir = run_dir + "/"
             return run_dir, old_type
-        elif temp is int:
+        elif temp is int and len(j) < 3:
             stringID = i
             break
     new_string = "/"
@@ -162,6 +162,9 @@ class BaseSim:
         self.scan_params = scan_params
         self.title = title
         self.add_type = ""
+        if os.path.isfile(hermes_ver) is False:
+            print("Invalid hermes excutable")
+            sys.exit("Find a legit path and try again")
         self.hermes_ver = hermes_ver
         self.cluster = cluster
         self.run_script = run_script
@@ -184,6 +187,9 @@ class BaseSim:
         hermes_URL = subprocess.run(
             "git remote get-url origin".split(), capture_output=True, text=True
         ).stdout.strip()
+        hermes_branch = subprocess.run(
+            "cat .git/HEAD".split(), capture_output=True, text=True
+        ).stdout.split("refs/heads/")[-1].strip()
         # BOUT_git_ID = get_last_line("BOUT_commit")
         hermes_branch = subprocess.run(
             "cat .git/HEAD".split(), capture_output=True, text=True
@@ -302,8 +308,10 @@ class BaseSim:
         restart2 = False
         if self.add_type != "":
             restart2 = True
+            print("restart is true for some reason")
         if restart is True:
             restart2 = True
+            print("restart is true for some other different reason")
         self.log("n_procs: {}".format(n_procs))
         if self.cluster == "viking":
             self.viking_mod_job(n_procs, tme, restart2, opt_nodes)
@@ -352,7 +360,7 @@ class BaseSim:
                 self.add_type,
             )
             if restart is False:
-                run_command = run_command.replace(" restart ", " ")
+                run_command = run_command.replace(" restart", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "aprun"), run_command
             )
@@ -390,7 +398,7 @@ class BaseSim:
                 n_procs, self.hermes_ver, self.run_dir, i, self.add_type
             )
             if restart is False:
-                run_command = run_command.replace(" restart ", " ")
+                run_command = run_command.replace(" restart", " ")
             replace_line(
                 self.run_script, find_line(self.run_script, "mpiexec"), run_command
             )
@@ -458,7 +466,8 @@ class BaseSim:
                 n_procs, self.hermes_ver, self.run_dir, i, self.add_type
             )
             if restart is False:
-                run_command = run_command.replace(" restart ", " ")
+                run_command = run_command.replace(" restart", " ")
+                print("restart is false")
             replace_line(
                 self.run_script, find_line(self.run_script, "mpirun"), run_command
             )
@@ -640,6 +649,8 @@ class StartFromOldSim(BaseSim):
                     )
                 )
 
+    def mod_job(self, n_procs, tme, opt_nodes, restart=True):
+        return super().mod_job(n_procs, tme, opt_nodes=opt_nodes, restart=restart)
 
 class StartFromOldMGSim(StartFromOldSim):
     def __init__(
@@ -693,6 +704,7 @@ class AddSim(BaseSim):
         self.run_dir = extract_rundir(run_dir)[0]
         self.old_type = extract_rundir(run_dir)[1]
         self.add_type = "restart"
+        # log_file = self.run_dir + f"/{log_file}"
         os.chdir(self.run_dir)
         self.scan_params = read_line(log_file, "scan_params")
         if self.scan_params is None:
@@ -1192,30 +1204,72 @@ def marconiMain():
     n_procs = 64
     tme = "01:11:11"
     hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-2/hermes-2"
-    # hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/hermes-onlypif/hermes-2"
+    hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/hermes-2_sheath/hermes-2"
     # grid_file = 'newtcv2_63161_64x64_profiles_5e19.nc'
 
+    hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/BD_mod/hermes-2"
     # sim = SlabSim(
     #     cluster="marconi",
     #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D",
-    #     path_in="nov",
+    #     path_in="2021/jan",
     #     date_dir=date_dir,
     #     grid_file=None,
     #     scan_params=None,
     #     hermes_ver=hermes_ver,
     #     run_script="test.job",
-    #     inp_file="BOUT_mixmode6.inp",
-    #     title="bb4-s4",
+    #     inp_file="BOUT_rb1.inp",
+    #     title="edge-diffusion",
     # )
 
     # sim.setup()
-    # # sim.mod_inp("sheath_model", 4)
-    # sim.mod_inp("NOUT", 88)
-    # sim.mod_inp("TIMESTEP", 111)
-    # sim.mod_inp("hyperpar", 0.1)
+    # sim.mod_inp("sheath_model", 2)
+    # sim.mod_inp("NOUT", 1)
+    # sim.mod_inp("TIMESTEP", 0.1)
+    # sim.mod_inp("phi_boundary_timescale", 1e-4)
+    # # csim.mod_inp("radial_inner_averagey_vort", "true")
     # # sim.mod_inp("ion_viscosity", "true")
-    # sim.mod_job(1152, "23:59:59") # 576, 1152
-    # sim.sub_job()
+    # sim.mod_job(48, "02:00:00") # 576, 1152
+    # sim.sub_job(shortQ=True)
+
+    # run_dirs = ["/marconi/home/userexternal/hmuhamme/work/2D/2021/jan2/BD-s2-63161-09-01-21_005659"]
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/2D/2021/jan2/BD-s2-63127-09-01-21_005643"]
+
+    run_dirs = ["/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D/2021/feb/restart-density/s2-63127-05-02-21_225903",
+                "/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D/2021/feb/restart-density/s2-63161-05-02-21_225951"]
+
+    # for run_dir in run_dirs:
+    #     old_type = ""
+    #     new_type = "1.1-moretime"
+    #     res = RestartSim(run_dir=run_dir)
+    #     res.hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/BD_16Jan/hermes-2"
+    #     res.setup(old_type=old_type, new_type=new_type)
+    #     # res.copy_restart_files(old_type=old_type, new_type=new_type, t=-4)
+    #     # res.copy_new_inp("BOUT_rb1.inp")
+    #     res.mod_inp("NOUT", 100)
+    #     res.mod_inp("TIMESTEP", 1500)
+    #     res.mod_inp("j_diamag_scale", 1)
+    #     # res.mod_inp("j_par", "false", )
+    #     # res.mod_inp("j_diamag", "false", 139)
+    #     # res.mod_inp("hyperpar", 0.7)
+    #     # res.mod_inp("hyper", 0.16, 149)
+    #     res.mod_job(64, "23:59:59")
+    #     res.sub_job()
+
+    # newsim = StartFromOldSim(run_dir = "/marconi/home/userexternal/hmuhamme/work/archer/nov/bb2-11-11-20_182752/0",
+    #                          new_path = "dec2",
+    #                          scan_params = [1e-5, 1e-4, 1e-3], #[1e-5, 1e-4, 1e-3],
+    #                          date_dir = date_dir,
+    #                          add_type = "",
+    #                          title = "bb2_s4_pd")
+
+    # # newsim.setup(hermes_ver="/home/e281/e281/hm1234/hm1234/hermes/hermes-2_BD/hermes-2")
+    # newsim.copy_new_inp("BOUT_phi_diss2.inp")
+    # newsim.mod_inp("phi_boundary_timescale")
+    # newsim.mod_inp("sheath_model", 4)
+    # # newsim.mod_inp("ion_viscosity", "true")
+    # # newsim.mod_file("job.pbs", "#PBS -A", "#PBS -A e281-bout", replace=True)
+    # newsim.mod_job(n_procs, tme="23:59:59", restart=True)
+    # newsim.sub_job()
 
     """
     for the resarting of the slab sim you should maybe look at playing with the cvode options ... cvode_max_order and mxstep
@@ -1226,6 +1280,50 @@ def marconiMain():
     densities = [3, 6, 8, 10, 12, 15]
     densities = [7, 8.5, 9, 9.5, 10, 11.5]
     # densities = [8]
+
+    grids = list_grids([4, 6, 8, 10, 12], 63161, "tcv9", "64x64")
+
+    hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/BD_16Jan/hermes-2"
+    # sim = MultiGridSim(
+    #     cluster=cluster,
+    #     path_out="/marconi_work/FUA34_SOLBOUT4/hmuhamme/2D",
+    #     path_in="2021/jan2/BDex",
+    #     date_dir=date_dir,
+    #     scan_params=grids,
+    #     hermes_ver=hermes_ver,
+    #     run_script="test.job",
+    #     inp_file="BOUT_BDex2.inp",
+    #     title="BD-s4-63161",
+    #     )
+
+    # sim.setup()
+    # sim.mod_inp("sheath_model", 4)
+    # sim.mod_inp("NOUT", 100)
+    # sim.mod_inp("TIMESTEP", 444)
+    # # sim.mod_inp("ion_viscosity", "false")
+    # # sim.mod_inp("type", "none", 221)
+    # # sim.mod_inp("loadmetric", "false", 102)
+    # # sim.mod_inp("use_precon", "false")
+    # sim.mod_job(64, "23:59:59")
+    # sim.sub_job()
+
+    restart_dir = "/marconi/home/userexternal/hmuhamme/work/2D/2021/jan2/BD-s2-63161-09-01-21_005659/1/2.3-moretime"
+    restart_dir = "/marconi/home/userexternal/hmuhamme/work/2D/2021/jan2/BD-s2-63127-09-01-21_005643/1/2.3-moretime"
+    Restart = StartFromOldMGSim(
+        restart_dir,
+        "2021/feb/restart-density2",
+        list_grids([8, 10, 12], 63127, "tcv9", "64x64"),
+        date_dir,
+        "",
+        "s2-63127",
+        "log.txt",
+    )
+    Restart.hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/BD_16Jan/hermes-2"
+    Restart.setup()
+    Restart.mod_job(n_procs=64, tme="23:59:59", restart=True)
+    Restart.mod_inp("NOUT", 100)
+    Restart.mod_inp("TIMESTEP", 1500)
+    Restart.sub_job()
 
     # for i in [0.01, 0.05, 0.15, 0.2]:
     #     grids = list_grids(densities, 63127, f"tcv8.2_tpsl{i}", "64x64")  # "tcvhyp2_3" "newtcv2"
@@ -1322,17 +1420,21 @@ def marconiMain():
     run_dirs = ["/marconi/home/userexternal/hmuhamme/work/3D/nov/bigbox-niv-05-11-20_101508/"]
     run_dirs = ["/marconi_work/FUA34_SOLBOUT4/hmuhamme/3D/nov/bigbox-iv-lessip-09-11-20_235824"]
     run_dirs = ["/marconi/home/userexternal/hmuhamme/work/3D/nov/bb_iv_lip_mc-11-11-20_192205"]
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/2D/2021/jan2/BD-s2-63127-09-01-21_005643",
+                "/marconi/home/userexternal/hmuhamme/work/2D/2021/jan2/BD-s2-63161-09-01-21_005659"]
     #####
     # for run_dir in run_dirs:
-    #     old_type = ""
-    #     new_type = "2.2-moretime"
-    #     res = RestartSim(run_dir=run_dir)
+    #     old_type = "2.3-moretime"
+    #     new_type = "3-higher_buffer_D"
+    #     res = RestartSim(run_dir=run_dir, scan_IDs=[0,1,2,3])
+    #     res.hermes_ver = "/marconi/home/userexternal/hmuhamme/work/hermes-tests/BD_16Jan/hermes-2"
     #     res.setup(old_type=old_type, new_type=new_type)
     #     res.copy_restart_files(old_type=old_type, new_type=new_type)
-    #     res.copy_new_inp("BOUT2.inp")
-    #     res.mod_inp("NOUT", 111)
-    #     res.mod_inp("TIMESTEP", 555)
-    #     # res.mod_inp("radial_buffers", "true")
+    #     # res.copy_new_inp("BOUT2.inp")
+    #     res.mod_inp("NOUT", 100)
+    #     res.mod_inp("TIMESTEP", 500)
+    #     res.mod_inp("radial_buffer_D", 1.5)
+    #     # res.mod_inp("ion_viscosity", "true")
     #     # res.copy_new_inp("BOUT-curr.inp")
     #     # res.mod_inp("carbon_fraction", 0.6)
     #     # res.mod_inp("j_par", "true")
@@ -1343,6 +1445,7 @@ def marconiMain():
     #     res.mod_job(64, "23:59:59")
     #     res.sub_job()
 
+    # run_dirs = ["/marconi/home/userexternal/hmuhamme/work/3D/2021/jan/fft-s2-02-01-21_185657"]
     # for run_dir in run_dirs:
     #     old_type = ""
     #     new_type = "1.1-moretime"
@@ -1350,9 +1453,9 @@ def marconiMain():
     #     res.setup(old_type=old_type, new_type=new_type)
     #     # res.copy_restart_files(old_type=old_type, new_type=new_type, t=-4)
     #     # res.copy_new_inp("BOUT_interp.inp")
-    #     res.mod_inp("NOUT", 100)
-    #     res.mod_inp("TIMESTEP", 200)
-    #     res.mod_inp("ramp_j_diamag", 1)
+    #     res.mod_inp("NOUT", 88)
+    #     res.mod_inp("TIMESTEP", 444)
+    #     # res.mod_inp("j_diamag_scale", 1)
     #     # res.mod_inp("hyperpar", 0.7)
     #     # res.mod_inp("hyper", 0.16, 149)
     #     res.mod_job(1152, "23:59:59")
@@ -1362,18 +1465,19 @@ def marconiMain():
     # run_dirs = next(os.walk(run_dir_origin))[1]
     # run_dirs = [f"{run_dir_origin}/{i}" for i in run_dirs]
     # print(run_dirs)
+    run_dirs = ["/marconi/home/userexternal/hmuhamme/work/2D/dec/new-s2-63127-29-12-20_163444"]
     # for run_dir in run_dirs:
     #     old_type = ""
     #     new_type = "2-addN"
-    #     addN = AddNeutrals(run_dir=run_dir, scan_IDs=[])
+    #     addN = AddNeutrals(run_dir=run_dir, scan_IDs=[1,2,3,4])
     #     addN.setup(old_type=old_type, new_type=new_type)
     #     addN.copy_restart_files(old_type=old_type, new_type=new_type,)
-    #     addN.mod_inp("TIMESTEP", 212)
-    #     addN.mod_inp("NOUT", 128)
+    #     addN.mod_inp("TIMESTEP", 300)
+    #     addN.mod_inp("NOUT", 100)
     #     addN.mod_inp("type", "mixed", 219)
-    #     addN.mod_inp("ion_viscosity", "false")
+    #     # addN.mod_inp("ion_viscosity", "false")
     #     addN.add_var(Nn=0.04, Pn=0.02)
-    #     addN.mod_job(64, "22:22:22")
+    #     addN.mod_job(64, "08:44:44")
     #     addN.sub_job()
 
     # simNum = 63161
@@ -1399,14 +1503,15 @@ def marconiMain():
     # Restart.mod_inp("TIMESTEP", 212)
     # Restart.sub_job()
 
+    # run_dir = run_dirs[0]
     # old_type = "2-addN"
     # new_type = "3-addC"
-    # addC = AddCurrents(run_dir=run_dir) # [0,1,2,3]
+    # addC = AddCurrents(run_dir=run_dir, scan_IDs=[1,2]) # [0,1,2,3]
     # addC.setup(old_type=old_type, new_type=new_type)
-    # addC.copy_restart_files(old_type=old_type, new_type=new_type, t=-1)
-    # addC.mod_inp("TIMESTEP", 75)
-    # addC.mod_inp("NOUT", 150)
-    # addC.mod_inp("ramp_j_diamag", "0.5 + (1/3.141592653589793) * atan(t - 10)")
+    # addC.copy_restart_files(old_type=old_type, new_type=new_type)
+    # addC.mod_inp("TIMESTEP", 100)
+    # addC.mod_inp("NOUT", 100)
+    # addC.mod_inp("j_diamag_scale", "0.5 + (1/3.141592653589793) * atan((t/50) - 5)")
     # addC.mod_inp("j_par", "true")
     # addC.mod_inp("j_diamag", "true")
     # addC.mod_job(64, "23:59:59")
@@ -1455,7 +1560,7 @@ def marconiMain():
 if __name__ == "__main__":
     hostname = os.uname()[1]
 
-    hostname = "eslogin"
+    # hostname = "eslogin"
 
     if "viking" in hostname:
         vikingMain()
