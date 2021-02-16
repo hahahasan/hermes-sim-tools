@@ -185,8 +185,11 @@ class BaseSim:
             "git remote get-url origin".split(), capture_output=True, text=True
         ).stdout.strip()
         # BOUT_git_ID = get_last_line("BOUT_commit")
+        hermes_branch = subprocess.run(
+            "cat .git/HEAD".split(), capture_output=True, text=True
+        ).stdout.split("refs/heads/")[-1].strip()
         os.chdir(curr_dir)
-        return hermes_URL, hermes_git_ID #, BOUT_git_ID
+        return hermes_URL, hermes_git_ID, hermes_branch
 
     def setup(self):
         self.log = LogSim(self.run_dir, "log.txt")
@@ -199,8 +202,8 @@ class BaseSim:
         self.log("scan_params: {}".format(str(self.scan_params)))
         # self.log("BOUT_commit: {}".format(self.get_hermes_git()[2]))
         self.log(
-            "hermes_info: {} - {}".format(
-                self.get_hermes_git()[0], self.get_hermes_git()[1]
+            "hermes_info: {} - {} - {}".format(
+                self.get_hermes_git()[0], self.get_hermes_git()[1], self.get_hermes_git()[2]
             )
         )
         self.log("hermes_ver: {}".format(self.hermes_ver))
