@@ -158,7 +158,7 @@ class squashData:
                     continue
                 try:
                     # os.system('rm BOUT.dmp.nc')
-                    squashoutput(outputname="squashed.nc", compress=True, complevel=1, quiet=True, tind_auto=True)
+                    squashoutput(outputname="squashed.nc", compress=True, complevel=1, quiet=True, tind_auto=True, parallel=True)
                 except (OSError, ValueError):
                     print("could not squash {}-{}".format(i, title))
                     continue
