@@ -192,8 +192,11 @@ class BaseSim:
             "cat .git/HEAD".split(), capture_output=True, text=True
         ).stdout.split("refs/heads/")[-1].strip()
         # BOUT_git_ID = get_last_line("BOUT_commit")
+        hermes_branch = subprocess.run(
+            "cat .git/HEAD".split(), capture_output=True, text=True
+        ).stdout.split("refs/heads/")[-1].strip()
         os.chdir(curr_dir)
-        return hermes_URL, hermes_git_ID, hermes_branch#, BOUT_git_ID
+        return hermes_URL, hermes_git_ID, hermes_branch
 
     def setup(self):
         self.log = LogSim(self.run_dir, "log.txt")
